@@ -1,6 +1,7 @@
 package com.velarlabs.velarcall.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -108,6 +109,9 @@ fun VelarTheme(content: @Composable () -> Unit) {
         error = p.danger, errorContainer = p.dangerSoft, outline = p.outline, outlineVariant = p.outline,
     )
     CompositionLocalProvider(LocalPalette provides p) {
-        MaterialTheme(colorScheme = scheme, typography = VelarType, content = content)
+        MaterialTheme(colorScheme = scheme, typography = VelarType) {
+            // Cor padrão do texto fora de Scaffold/Surface (ex.: boas-vindas). Sem isso fica preto no tema escuro.
+            CompositionLocalProvider(LocalContentColor provides p.text, content = content)
+        }
     }
 }

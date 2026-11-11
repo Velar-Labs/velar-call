@@ -9,7 +9,27 @@ RES="$OUT/resultados.txt"
 
 shot() { sleep 2; adb shell screencap -p /sdcard/s.png; adb pull -q /sdcard/s.png "$OUT/$1.png" >/dev/null; }
 
+dismiss_anr() {
+  # Fecha diálogos "não está respondendo" do próprio emulador.
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  adb pull -q /sdcard/ui.xml /tmp/ui.xml >/dev/null 2>&1
+  if grep -q "isn't responding" /tmp/ui.xml 2>/dev/null; then
+    echo "emulador: fechando diálogo ANR" >> "$RES"
+    tap_once "Wait"
+  fi
+}
+
 tap_text() {
+  local i
+  for i in 1 2 3; do
+    dismiss_anr
+    tap_once "$1" && return 0
+    sleep 3
+  done
+  echo "texto nao encontrado: $1" >> "$RES"
+}
+
+tap_once() {
   adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
   adb pull -q /sdcard/ui.xml /tmp/ui.xml >/dev/null 2>&1
   local xy
@@ -26,8 +46,8 @@ for m in re.finditer(r'<node [^>]*>', xml):
         print((x1 + x2) // 2, (y1 + y2) // 2); break
 PY
 )
-  if [ -n "$xy" ]; then adb shell input tap $xy; else echo "texto nao encontrado: $1" >> "$RES"; fi
-  sleep 2
+  if [ -n "$xy" ]; then adb shell input tap $xy; sleep 2; return 0; fi
+  return 1
 }
 
 add_contact() {
@@ -52,6 +72,7 @@ test_call() { # numero esperado(TOCA|BLOQUEIA) descricao
 }
 
 adb shell settings put global window_animation_scale 0
+sleep 20
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 add_contact "Ana Souza" "11999990000"
@@ -96,10 +117,15 @@ shot 08-agenda-com-bloqueio
 tap_text "Listas"; shot 09-listas
 tap_text "Ajustes"; shot 10-ajustes
 
-# 5) tema escuro
+# 5) tema escuro (inclui boas-vindas)
 adb shell cmd uimode night yes
-adb shell am force-stop $PKG
+adb shell pm clear $PKG >/dev/null
+adb shell pm grant $PKG android.permission.READ_CONTACTS
+adb shell pm grant $PKG android.permission.POST_NOTIFICATIONS
+adb shell cmd role add-role-holder android.app.role.CALL_SCREENING $PKG 0
 adb shell am start -W -n $PKG/.ui.MainActivity >/dev/null
+shot 11a-boas-vindas-escuro
+tap_text "Começar"
 shot 11-inicio-escuro
 tap_text "Agenda"; shot 12-agenda-escuro
 
