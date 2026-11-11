@@ -109,7 +109,7 @@ fun VelarApp(
     // Incrementado localmente depois de cada alteração, para recarregar listas.
     var localTick by remember { mutableIntStateOf(0) }
     val tick = refreshTick + localTick
-    val bump = { localTick++ }
+    val bump: () -> Unit = { localTick++ }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
