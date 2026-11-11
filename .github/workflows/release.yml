@@ -1,7 +1,10 @@
 name: Release
 
+# Publica quando o arquivo VERSION muda na main (ou numa tag v* criada à mão).
 on:
   push:
+    branches: [main]
+    paths: [VERSION]
     tags: ["v*"]
 
 permissions:
@@ -12,13 +15,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Definir versão
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then TAG="$GITHUB_REF_NAME"; else TAG="v$(tr -d '[:space:]' < VERSION)"; fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG já existe; nada a fazer."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
       - uses: actions/setup-java@v4
+        if: env.SKIP != '1'
         with:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+        if: env.SKIP != '1'
 
       - name: Preparar keystore
+        if: env.SKIP != '1'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
@@ -29,22 +46,25 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
 
       - name: APK de release assinado
+        if: env.SKIP != '1'
         env:
           VELAR_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           VELAR_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           VELAR_KEY_ALIAS: velarcall
           VERSION_CODE: ${{ github.run_number }}
         run: |
-          export VERSION_NAME="${GITHUB_REF_NAME#v}"
+          export VERSION_NAME="${TAG#v}"
           chmod +x gradlew
           ./gradlew --no-daemon testReleaseUnitTest assembleRelease
-          cp app/build/outputs/apk/release/app-release.apk "VelarCall-${GITHUB_REF_NAME}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "VelarCall-${TAG}.apk"
 
       - name: Publicar no Releases
+        if: env.SKIP != '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "VelarCall-${GITHUB_REF_NAME}.apk" \
-            --title "VelarCall ${GITHUB_REF_NAME}" \
-            --notes "APK assinado do VelarCall ${GITHUB_REF_NAME}. Requer Android 10 ou superior." \
+          gh release create "$TAG" "VelarCall-${TAG}.apk" \
+            --target "$GITHUB_SHA" \
+            --title "VelarCall ${TAG}" \
+            --notes "APK assinado do VelarCall ${TAG}. Requer Android 10 ou superior." \
             --prerelease
