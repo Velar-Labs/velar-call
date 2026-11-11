@@ -9,11 +9,18 @@ enum class ListType { ALLOW, BLOCK, ONLINE }
 
 data class NumberEntry(val key: String, val type: ListType, val label: String)
 
-data class BlockedCall(val id: Long, val number: String, val reason: String, val at: Long)
+/** [toVoicemail] = a chamada foi silenciada e mandada ao correio de voz da operadora. */
+data class BlockedCall(
+    val id: Long,
+    val number: String,
+    val reason: String,
+    val at: Long,
+    val toVoicemail: Boolean = false,
+)
 
 /** Banco local simples (SQLite puro, sem geração de código). */
 class VelarDb private constructor(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "velarcall.db", null, 1) {
+    SQLiteOpenHelper(context.applicationContext, "velarcall.db", null, 2) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -22,12 +29,16 @@ class VelarDb private constructor(context: Context) :
         )
         db.execSQL(
             "CREATE TABLE blocked (id INTEGER PRIMARY KEY AUTOINCREMENT, num TEXT NOT NULL, " +
-                "reason TEXT NOT NULL, at INTEGER NOT NULL)"
+                "reason TEXT NOT NULL, at INTEGER NOT NULL, voicemail INTEGER NOT NULL DEFAULT 0)"
         )
         db.execSQL("CREATE INDEX idx_blocked_at ON blocked(at)")
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE blocked ADD COLUMN voicemail INTEGER NOT NULL DEFAULT 0")
+        }
+    }
 
     // ---------- listas ----------
 
@@ -96,9 +107,14 @@ class VelarDb private constructor(context: Context) :
 
     // ---------- histórico ----------
 
-    fun logBlocked(number: String, reason: String, at: Long = System.currentTimeMillis()) {
+    fun logBlocked(
+        number: String,
+        reason: String,
+        toVoicemail: Boolean = false,
+        at: Long = System.currentTimeMillis(),
+    ) {
         writableDatabase.insert("blocked", null, ContentValues().apply {
-            put("num", number); put("reason", reason); put("at", at)
+            put("num", number); put("reason", reason); put("at", at); put("voicemail", if (toVoicemail) 1 else 0)
         })
         // Mantém só os 1000 registros mais recentes.
         writableDatabase.execSQL(
@@ -106,14 +122,18 @@ class VelarDb private constructor(context: Context) :
         )
     }
 
-    fun blocked(limit: Int = 200): List<BlockedCall> =
-        readableDatabase.rawQuery(
-            "SELECT id, num, reason, at FROM blocked ORDER BY at DESC LIMIT $limit", null
+    /** [onlyVoicemail] = só as que foram para o correio de voz. */
+    fun blocked(limit: Int = 200, onlyVoicemail: Boolean = false): List<BlockedCall> {
+        val where = if (onlyVoicemail) "WHERE voicemail = 1 " else ""
+        return readableDatabase.rawQuery(
+            "SELECT id, num, reason, at, voicemail FROM blocked $where ORDER BY at DESC LIMIT $limit", null
         ).use { c ->
             buildList {
-                while (c.moveToNext()) add(BlockedCall(c.getLong(0), c.getString(1), c.getString(2), c.getLong(3)))
+                while (c.moveToNext())
+                    add(BlockedCall(c.getLong(0), c.getString(1), c.getString(2), c.getLong(3), c.getInt(4) == 1))
             }
         }
+    }
 
     fun blockedSince(since: Long): Int =
         readableDatabase.rawQuery("SELECT COUNT(*) FROM blocked WHERE at >= ?", arrayOf(since.toString()))

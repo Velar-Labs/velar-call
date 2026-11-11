@@ -70,7 +70,7 @@ const val TAB_CONTACTS = 2
 const val TAB_LISTS = 3
 const val TAB_SETTINGS = 4
 
-private val titles = listOf("VelarCall", "Bloqueadas", "Agenda", "Minhas listas", "Ajustes")
+private val titles = listOf("VelarCall", "Recados", "Agenda", "Minhas listas", "Ajustes")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,7 +91,7 @@ fun VelarApp(refreshTick: Int, initialTab: Int, env: AppEnv) {
 
     val navItems: List<Pair<String, Painter>> = listOf(
         "Início" to shieldPainter(),
-        "Bloqueadas" to rememberVectorPainter(Icons.Filled.Call),
+        "Recados" to voicemailPainter(),
         "Agenda" to rememberVectorPainter(Icons.Filled.Person),
         "Listas" to rememberVectorPainter(Icons.AutoMirrored.Filled.List),
         "Ajustes" to rememberVectorPainter(Icons.Filled.Settings),
@@ -140,7 +140,7 @@ fun VelarApp(refreshTick: Int, initialTab: Int, env: AppEnv) {
         Box(Modifier.padding(pad).fillMaxSize()) {
             when (tab) {
                 TAB_HOME -> HomeScreen(tick, bump, env) { tab = it }
-                TAB_HISTORY -> HistoryScreen(tick, bump)
+                TAB_HISTORY -> RecadosScreen(tick, bump)
                 TAB_CONTACTS -> ContactsScreen(tick, bump, env)
                 TAB_LISTS -> ListsScreen(tick, bump, snackbar)
                 else -> SettingsScreen(tick, bump, env)

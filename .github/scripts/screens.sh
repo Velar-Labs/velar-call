@@ -97,7 +97,10 @@ shot 02-boas-vindas-pronto
 tap_text "Começar"
 shot 03-inicio-vazio
 
-# 3) ligações simuladas
+# 3) decisões: com o correio de voz DESLIGADO, bloqueio = rejeição (callState 0)
+tap_text "Recados"
+tap_text "Deixar cair no correio de voz"   # padrão ligado -> desliga para testar a rejeição
+shot 03b-recados
 adb shell input keyevent KEYCODE_HOME
 test_call 11987654321 BLOQUEIA "desconhecido"
 test_call 11999990000 TOCA "contato da agenda"
@@ -107,10 +110,17 @@ test_call 21933332222 BLOQUEIA "outro desconhecido"
 test_call 11988881111 TOCA "contato salvo em +55, chamada nacional"
 test_call +5511999990000 TOCA "contato nacional, chamada em +55 (E.164)"
 
+# 3b) com o correio de voz LIGADO, o bloqueado é silenciado (não rejeitado): segue para o correio
+adb shell am start -W -n $PKG/.ui.MainActivity >/dev/null
+tap_text "Recados"
+tap_text "Deixar cair no correio de voz"   # religa
+adb shell input keyevent KEYCODE_HOME
+test_call 11955553333 TOCA "bloqueado com correio de voz (silenciado, segue para o correio)"
+
 # 4) telas com dados
 adb shell am start -W -n $PKG/.ui.MainActivity >/dev/null
 shot 04-inicio
-tap_text "Bloqueadas"; shot 05-bloqueadas
+tap_text "Recados"; shot 05-recados
 tap_text "Agenda"; shot 06-agenda
 tap_text "Bruno Lima"; shot 07-contato
 tap_text "Bloquear contato"; adb shell input keyevent KEYCODE_BACK; sleep 1

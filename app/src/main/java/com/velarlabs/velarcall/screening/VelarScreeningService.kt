@@ -47,23 +47,30 @@ class VelarScreeningService : CallScreeningService() {
             Log.e(TAG, "Falha ao decidir; permitindo a chamada", e)
             Decision.Allow("Erro")
         }
-        recordDiagnostic(details, raw, verifyStatus, decider, decision)
+        // Silenciar (em vez de rejeitar) deixa a chamada cair no correio de voz da operadora,
+        // onde quem ligou pode deixar um recado. Rejeitar corta na hora.
+        val toVoicemail = decision is Decision.Block && Settings(this).sendBlockedToVoicemail
+        recordDiagnostic(details, raw, verifyStatus, decider, decision, toVoicemail)
 
-        val response = when (decision) {
-            is Decision.Block -> CallResponse.Builder()
+        val response = when {
+            decision is Decision.Allow -> CallResponse.Builder().build()
+            toVoicemail -> CallResponse.Builder()
+                .setSilenceCall(true)   // não toca; segue para o correio de voz se ninguém atender
+                .setSkipNotification(true)
+                .build()
+            else -> CallResponse.Builder()
                 .setDisallowCall(true)
                 .setRejectCall(true)
                 .setSkipCallLog(false)
                 .setSkipNotification(true)
                 .build()
-            is Decision.Allow -> CallResponse.Builder().build()
         }
         respondToCall(details, response)
 
         if (decision is Decision.Block) {
             val shown = raw.orEmpty()
-            VelarDb.get(this).logBlocked(shown, decision.reason)
-            notifyBlocked(shown, decision.reason)
+            VelarDb.get(this).logBlocked(shown, decision.reason, toVoicemail)
+            notifyBlocked(shown, decision.reason, toVoicemail)
         }
     }
 
@@ -74,6 +81,7 @@ class VelarScreeningService : CallScreeningService() {
         verifyStatus: Int,
         decider: CallDecider,
         decision: Decision,
+        toVoicemail: Boolean,
     ) {
         val verify = when (verifyStatus) {
             Connection.VERIFICATION_STATUS_PASSED -> "verificado"
@@ -81,7 +89,11 @@ class VelarScreeningService : CallScreeningService() {
             Connection.VERIFICATION_STATUS_NOT_VERIFIED -> "não verificado"
             else -> "indisponível"
         }
-        val result = if (decision is Decision.Block) "BLOQUEADA" else "PERMITIDA"
+        val result = when {
+            decision is Decision.Block && toVoicemail -> "CORREIO DE VOZ"
+            decision is Decision.Block -> "BLOQUEADA"
+            else -> "PERMITIDA"
+        }
         val reason = when (decision) { is Decision.Block -> decision.reason; is Decision.Allow -> decision.reason }
         val count = decider.contactNumberCount()
         val contacts = if (count < 0) "sem permissão de agenda" else "$count números na agenda"
@@ -99,7 +111,7 @@ class VelarScreeningService : CallScreeningService() {
         Settings(this).apply { lastCallDiag = diag; lastCallDiagAt = System.currentTimeMillis() }
     }
 
-    private fun notifyBlocked(raw: String, reason: String) {
+    private fun notifyBlocked(raw: String, reason: String, toVoicemail: Boolean) {
         if (!Settings(this).notifyOnBlock) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -113,8 +125,10 @@ class VelarScreeningService : CallScreeningService() {
         val n = Notification.Builder(this, VelarCallApp.CHANNEL_BLOCKED)
             .setSmallIcon(R.drawable.ic_shield_v)
             .setColor(getColor(R.color.velar_brand))
-            .setContentTitle("Chamada bloqueada: ${PhoneNumbers.pretty(raw)}")
-            .setContentText(reason)
+            .setContentTitle(
+                (if (toVoicemail) "Recado no correio de voz: " else "Chamada bloqueada: ") + PhoneNumbers.pretty(raw)
+            )
+            .setContentText(if (toVoicemail) "$reason · ouça no correio de voz" else reason)
             .setContentIntent(open)
             .setAutoCancel(true)
             .build()

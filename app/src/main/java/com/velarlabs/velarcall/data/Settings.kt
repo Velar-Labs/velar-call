@@ -48,6 +48,14 @@ class Settings(context: Context) {
         get() = prefs.getBoolean(K_NOTIFY, true)
         set(v) = prefs.edit().putBoolean(K_NOTIFY, v).apply()
 
+    /**
+     * Em vez de rejeitar na hora, silencia a chamada bloqueada e a deixa cair no
+     * correio de voz da operadora, para a pessoa poder deixar um recado.
+     */
+    var sendBlockedToVoicemail: Boolean
+        get() = prefs.getBoolean(K_VOICEMAIL, true)
+        set(v) = prefs.edit().putBoolean(K_VOICEMAIL, v).apply()
+
     var onlineListUrl: String
         get() = prefs.getString(K_URL, DEFAULT_LIST_URL) ?: DEFAULT_LIST_URL
         set(v) = prefs.edit().putString(K_URL, v.trim()).apply()
@@ -84,6 +92,7 @@ class Settings(context: Context) {
         private const val K_ONLINE = "use_online"
         private const val K_SPOOF = "block_spoofed"
         private const val K_NOTIFY = "notify_on_block"
+        private const val K_VOICEMAIL = "send_to_voicemail"
         private const val K_REPEAT = "allow_repeat"
         private const val K_ONBOARD = "onboarding_done"
         const val REPEAT_WINDOW_MS = 3 * 60 * 1000L
