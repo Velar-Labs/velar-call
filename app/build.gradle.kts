@@ -12,13 +12,27 @@ android {
         applicationId = "com.velarlabs.velarcall"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = (System.getenv("VERSION_CODE") ?: "1").toInt()
+        versionName = System.getenv("VERSION_NAME") ?: "0.1.0"
+    }
+
+    // Assinatura de release: só existe quando o CI fornece a keystore.
+    val keystorePath = System.getenv("VELAR_KEYSTORE_PATH")
+    signingConfigs {
+        if (keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("VELAR_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("VELAR_KEY_ALIAS") ?: "velarcall"
+                keyPassword = System.getenv("VELAR_KEYSTORE_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
+            if (keystorePath != null) signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
