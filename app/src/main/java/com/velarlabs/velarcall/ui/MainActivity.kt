@@ -24,6 +24,15 @@ class MainActivity : ComponentActivity() {
         refreshTick.intValue++
     }
 
+    private val env by lazy {
+        AppEnv(
+            isRoleHeld = ::isRoleHeld,
+            requestRole = ::requestRole,
+            hasPermission = ::hasPermission,
+            requestPermissions = ::askPermissions,
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -33,10 +42,7 @@ class MainActivity : ComponentActivity() {
                 VelarApp(
                     refreshTick = refreshTick.intValue,
                     initialTab = startTab.intValue,
-                    isRoleHeld = ::isRoleHeld,
-                    requestRole = ::requestRole,
-                    hasPermission = ::hasPermission,
-                    requestPermissions = ::askPermissions,
+                    env = env,
                 )
             }
         }
@@ -70,7 +76,5 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_TAB = "tab"
-        const val TAB_HOME = 0
-        const val TAB_HISTORY = 1
     }
 }

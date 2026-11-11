@@ -119,6 +119,15 @@ class VelarDb private constructor(context: Context) :
         readableDatabase.rawQuery("SELECT COUNT(*) FROM blocked WHERE at >= ?", arrayOf(since.toString()))
             .use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
 
+    /** Números (crus) bloqueados desde [since]. */
+    fun blockedNumbersSince(since: Long): List<String> =
+        readableDatabase.rawQuery("SELECT num FROM blocked WHERE at >= ?", arrayOf(since.toString()))
+            .use { c -> buildList { while (c.moveToNext()) add(c.getString(0)) } }
+
+    fun removeHistory(id: Long) {
+        writableDatabase.delete("blocked", "id = ?", arrayOf(id.toString()))
+    }
+
     fun clearHistory() {
         writableDatabase.delete("blocked", null, null)
     }

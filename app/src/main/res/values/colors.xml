@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="velar_bg">#0B1220</color>
-    <color name="velar_icon_bg">#0F1B33</color>
+    <color name="velar_brand">#2F5BFF</color>
+    <color name="velar_bg">#F6F7FB</color>
 </resources>

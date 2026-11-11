@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" width="120" alt="VelarCall"></p>
+
 # VelarCall
 
 App Android da **Velar Labs** que identifica e bloqueia ligações indesejadas: quem está fora da sua agenda, números ocultos, telemarketing e números suspeitos de uma lista online.
@@ -12,14 +14,17 @@ Regras, em ordem de prioridade:
 |---|-------|-----------|
 | 1 | Número oculto | bloqueia (opcional) |
 | 2 | Origem falsificada, quando a operadora informa (Android 11+) | bloqueia (opcional) |
-| 3 | Lista **permitida** do app | toca |
-| 4 | Contato da agenda | toca |
-| 5 | Lista **bloqueada** do app | bloqueia |
+| 3 | Lista **liberada** do app | toca |
+| 4 | Lista **bloqueada** do app (vale até para contatos) | bloqueia |
+| 5 | Contato da agenda | toca |
 | 6 | Lista online / prefixos suspeitos | bloqueia (opcional) |
 | 7 | Prefixo 0303 (telemarketing) | bloqueia (opcional) |
-| 8 | Fora da agenda | bloqueia (opcional, ligado por padrão) |
+| 8 | Mesmo desconhecido ligando de novo em até 3 min | toca (opcional, ligado por padrão) |
+| 9 | Fora da agenda | bloqueia (opcional, ligado por padrão) |
 
-> Sem a permissão de agenda, a regra 8 fica desativada de propósito. Sem essa permissão o app não sabe quem é contato e acabaria bloqueando conhecidos.
+Na aba **Agenda** dá para bloquear ou liberar qualquer contato com um toque.
+
+> Sem a permissão de agenda, a regra 9 fica desativada de propósito. Sem essa permissão o app não sabe quem é contato e acabaria bloqueando conhecidos.
 
 Toda a decisão acontece no aparelho. Nenhum dado das suas chamadas sai do celular. A única conexão de rede é o download da lista online.
 
@@ -47,6 +52,10 @@ Inclua só números com denúncia confirmada. Um número legítimo na lista púb
 
 - Android 10 (API 29) ou superior
 - Permissões: agenda (obrigatória para o bloqueio de desconhecidos) e notificações (opcional)
+
+## Publicar uma versão
+
+Altere o número no arquivo [`VERSION`](VERSION) na `main`. O workflow **Release** compila, assina e publica o APK em Releases. Exige os secrets `KEYSTORE_BASE64` e `KEYSTORE_PASSWORD`.
 
 ## Compilar
 

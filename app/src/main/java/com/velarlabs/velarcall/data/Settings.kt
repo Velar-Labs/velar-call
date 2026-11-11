@@ -35,6 +35,15 @@ class Settings(context: Context) {
         get() = prefs.getBoolean(K_SPOOF, true)
         set(v) = prefs.edit().putBoolean(K_SPOOF, v).apply()
 
+    /** Deixa tocar se um número desconhecido ligar de novo em poucos minutos (pode ser urgente). */
+    var allowRepeatCaller: Boolean
+        get() = prefs.getBoolean(K_REPEAT, true)
+        set(v) = prefs.edit().putBoolean(K_REPEAT, v).apply()
+
+    var onboardingDone: Boolean
+        get() = prefs.getBoolean(K_ONBOARD, false)
+        set(v) = prefs.edit().putBoolean(K_ONBOARD, v).apply()
+
     var notifyOnBlock: Boolean
         get() = prefs.getBoolean(K_NOTIFY, true)
         set(v) = prefs.edit().putBoolean(K_NOTIFY, v).apply()
@@ -66,6 +75,9 @@ class Settings(context: Context) {
         private const val K_ONLINE = "use_online"
         private const val K_SPOOF = "block_spoofed"
         private const val K_NOTIFY = "notify_on_block"
+        private const val K_REPEAT = "allow_repeat"
+        private const val K_ONBOARD = "onboarding_done"
+        const val REPEAT_WINDOW_MS = 3 * 60 * 1000L
         private const val K_URL = "online_url"
         private const val K_SYNC_AT = "sync_at"
         private const val K_SYNC_MSG = "sync_msg"

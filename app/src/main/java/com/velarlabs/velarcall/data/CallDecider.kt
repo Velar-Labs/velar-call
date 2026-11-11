@@ -17,11 +17,12 @@ sealed class Decision {
  *  2. Número oculto                 -> bloqueia (se ativado)
  *  3. Origem falsificada (operadora) -> bloqueia (se ativado)
  *  4. Lista permitida do app        -> permite
- *  5. Contato da agenda             -> permite
- *  6. Lista bloqueada manual        -> bloqueia
+ *  5. Lista bloqueada manual        -> bloqueia (vale até para contatos)
+ *  6. Contato da agenda             -> permite
  *  7. Lista online                  -> bloqueia (se ativado)
  *  8. Prefixo de telemarketing      -> bloqueia (se ativado)
- *  9. Desconhecido                  -> bloqueia (se ativado e com acesso à agenda)
+ *  9. Mesmo desconhecido de novo em 3 min -> permite (se ativado)
+ * 10. Desconhecido                  -> bloqueia (se ativado e com acesso à agenda)
  */
 class CallDecider(private val context: Context) {
 
@@ -43,7 +44,12 @@ class CallDecider(private val context: Context) {
         }
     }
 
-    fun decide(raw: String?, spoofed: Boolean = false, ignoreMasterSwitch: Boolean = false): Decision {
+    fun decide(
+        raw: String?,
+        spoofed: Boolean = false,
+        ignoreMasterSwitch: Boolean = false,
+        checkRepeat: Boolean = false,
+    ): Decision {
         if (!settings.protectionOn && !ignoreMasterSwitch) return Decision.Allow("Proteção desligada")
 
         val key = PhoneNumbers.key(raw)
@@ -57,11 +63,11 @@ class CallDecider(private val context: Context) {
         entries.firstOrNull { it.type == ListType.ALLOW }?.let {
             return Decision.Allow(if (it.label.isNotBlank()) "Permitido: ${it.label}" else "Lista permitida")
         }
+        entries.firstOrNull { it.type == ListType.BLOCK }?.let {
+            return Decision.Block(if (it.label.isNotBlank()) "Bloqueado: ${it.label}" else "Bloqueado por você")
+        }
         contactName(raw!!)?.let { name ->
             return Decision.Allow(if (name.isNotBlank()) "Contato: $name" else "Contato da agenda")
-        }
-        entries.firstOrNull { it.type == ListType.BLOCK }?.let {
-            return Decision.Block(if (it.label.isNotBlank()) "Bloqueado: ${it.label}" else "Lista bloqueada")
         }
         if (settings.useOnlineList) {
             entries.firstOrNull { it.type == ListType.ONLINE }?.let {
@@ -73,6 +79,13 @@ class CallDecider(private val context: Context) {
         }
         if (settings.blockTelemarketingPrefix && key.startsWith("0303")) {
             return Decision.Block("Telemarketing (0303)")
+        }
+        // Só suaviza o bloqueio de desconhecidos; listas e 0303 continuam valendo.
+        if (checkRepeat && settings.allowRepeatCaller) {
+            val since = System.currentTimeMillis() - Settings.REPEAT_WINDOW_MS
+            if (db.blockedNumbersSince(since).any { PhoneNumbers.key(it) == key }) {
+                return Decision.Allow("Ligou de novo em poucos minutos")
+            }
         }
         if (settings.blockUnknown) {
             // Sem acesso à agenda não dá para saber quem é contato: não bloqueia para não barrar conhecidos.

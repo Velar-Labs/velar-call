@@ -19,6 +19,7 @@ import com.velarlabs.velarcall.data.PhoneNumbers
 import com.velarlabs.velarcall.data.Settings
 import com.velarlabs.velarcall.data.VelarDb
 import com.velarlabs.velarcall.ui.MainActivity
+import com.velarlabs.velarcall.ui.TAB_HISTORY
 
 /**
  * Chamado pelo Android a cada ligação recebida, quando o VelarCall é o
@@ -39,7 +40,7 @@ class VelarScreeningService : CallScreeningService() {
             details.callerNumberVerificationStatus == Connection.VERIFICATION_STATUS_FAILED
 
         val decision = try {
-            CallDecider(this).decide(raw, spoofed)
+            CallDecider(this).decide(raw, spoofed, checkRepeat = true)
         } catch (e: Exception) {
             Log.e(TAG, "Falha ao decidir; permitindo a chamada", e)
             Decision.Allow("Erro")
@@ -71,11 +72,12 @@ class VelarScreeningService : CallScreeningService() {
 
         val open = PendingIntent.getActivity(
             this, 0,
-            Intent(this, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, MainActivity.TAB_HISTORY),
+            Intent(this, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, TAB_HISTORY),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val n = Notification.Builder(this, VelarCallApp.CHANNEL_BLOCKED)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_shield_v)
+            .setColor(getColor(R.color.velar_brand))
             .setContentTitle("Chamada bloqueada: ${PhoneNumbers.pretty(raw)}")
             .setContentText(reason)
             .setContentIntent(open)
