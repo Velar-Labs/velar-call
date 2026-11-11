@@ -46,6 +46,8 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
     val syncAt = remember(tick) { settings.lastSyncAt }
     val onlineCount = remember(tick) { db.count(ListType.ONLINE) }
     val roleHeld = remember(tick) { env.isRoleHeld() }
+    val diag = remember(tick) { settings.lastCallDiag }
+    val diagAt = remember(tick) { settings.lastCallDiagAt }
 
     LazyColumn(contentPadding = ScreenPadding) {
         item { SectionLabel("PROTEÇÃO") }
@@ -64,6 +66,24 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
             }
         }
 
+        if (diag.isNotBlank()) {
+            item { SectionLabel("ÚLTIMA CHAMADA ANALISADA") }
+            item {
+                Panel {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(diag, style = MaterialTheme.typography.bodyMedium, color = palette.text)
+                        if (diagAt > 0) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                DateUtils.getRelativeTimeSpanString(diagAt).toString(),
+                                style = MaterialTheme.typography.bodySmall, color = palette.muted
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         item { SectionLabel("O QUE BLOQUEAR") }
         item {
             Panel {
@@ -79,7 +99,11 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
                     settings.allowRepeatCaller
                 ) { settings.allowRepeatCaller = it; bump() }
                 RowDivider(16.dp)
-                ToggleRow("Números ocultos", "Chamadas sem identificação.", settings.blockHidden) {
+                ToggleRow(
+                    "Números ocultos",
+                    "Chamadas sem identificador. Deixe desligado se às vezes não recebe chamadas de contatos: alguns aparelhos não entregam o número ao app.",
+                    settings.blockHidden
+                ) {
                     settings.blockHidden = it; bump()
                 }
                 RowDivider(16.dp)
@@ -91,7 +115,7 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
                 RowDivider(16.dp)
                 ToggleRow(
                     "Número forjado",
-                    "Quando a operadora indica que o número foi falsificado (Android 11+).",
+                    "Quando a operadora indica origem falsa (Android 11+). Muitas operadoras no Brasil não informam isso de forma confiável, por isso vem desligado.",
                     settings.blockSpoofed
                 ) { settings.blockSpoofed = it; bump() }
             }

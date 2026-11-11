@@ -80,6 +80,7 @@ add_contact "Bruno Lima" "21988887777"
 add_contact "Carla Mendes" "31977776666"
 add_contact "Diego Rocha" "41966665555"
 add_contact "Elisa Prado" "51955554444"
+add_contact "Fernando E164" "+55 11 98888-1111"
 
 # 1) primeira abertura sem permissões
 adb shell am start -W -n $PKG/.ui.MainActivity >/dev/null
@@ -103,6 +104,8 @@ test_call 11999990000 TOCA "contato da agenda"
 test_call 03031234567 BLOQUEIA "telemarketing 0303"
 test_call 11987654321 TOCA "mesmo desconhecido de novo (insistência)"
 test_call 21933332222 BLOQUEIA "outro desconhecido"
+test_call 11988881111 TOCA "contato salvo em +55, chamada nacional"
+test_call +5511999990000 TOCA "contato nacional, chamada em +55 (E.164)"
 
 # 4) telas com dados
 adb shell am start -W -n $PKG/.ui.MainActivity >/dev/null
@@ -116,6 +119,7 @@ adb shell am start -W -n $PKG/.ui.MainActivity >/dev/null
 shot 08-agenda-com-bloqueio
 tap_text "Listas"; shot 09-listas
 tap_text "Ajustes"; shot 10-ajustes
+adb shell input swipe 540 1600 540 400; sleep 1; shot 10b-ajustes-rolado
 
 # 5) tema escuro (inclui boas-vindas)
 adb shell cmd uimode night yes

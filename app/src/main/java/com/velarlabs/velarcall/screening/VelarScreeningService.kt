@@ -36,15 +36,18 @@ class VelarScreeningService : CallScreeningService() {
         }
 
         val raw = details.handle?.schemeSpecificPart
-        val spoofed = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-            details.callerNumberVerificationStatus == Connection.VERIFICATION_STATUS_FAILED
+        val verifyStatus = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+            details.callerNumberVerificationStatus else -1
+        val spoofed = verifyStatus == Connection.VERIFICATION_STATUS_FAILED
 
+        val decider = CallDecider(this)
         val decision = try {
-            CallDecider(this).decide(raw, spoofed, checkRepeat = true)
+            decider.decide(raw, spoofed, checkRepeat = true)
         } catch (e: Exception) {
             Log.e(TAG, "Falha ao decidir; permitindo a chamada", e)
             Decision.Allow("Erro")
         }
+        recordDiagnostic(details, raw, verifyStatus, decider, decision)
 
         val response = when (decision) {
             is Decision.Block -> CallResponse.Builder()
@@ -62,6 +65,38 @@ class VelarScreeningService : CallScreeningService() {
             VelarDb.get(this).logBlocked(shown, decision.reason)
             notifyBlocked(shown, decision.reason)
         }
+    }
+
+    /** Guarda um resumo da última chamada para a tela de diagnóstico ajudar a entender bloqueios indevidos. */
+    private fun recordDiagnostic(
+        details: Call.Details,
+        raw: String?,
+        verifyStatus: Int,
+        decider: CallDecider,
+        decision: Decision,
+    ) {
+        val verify = when (verifyStatus) {
+            Connection.VERIFICATION_STATUS_PASSED -> "verificado"
+            Connection.VERIFICATION_STATUS_FAILED -> "falhou (suspeito de forjado)"
+            Connection.VERIFICATION_STATUS_NOT_VERIFIED -> "não verificado"
+            else -> "indisponível"
+        }
+        val result = if (decision is Decision.Block) "BLOQUEADA" else "PERMITIDA"
+        val reason = when (decision) { is Decision.Block -> decision.reason; is Decision.Allow -> decision.reason }
+        val count = decider.contactNumberCount()
+        val contacts = if (count < 0) "sem permissão de agenda" else "$count números na agenda"
+        val numberInfo = when {
+            details.handle == null -> "número NÃO entregue pela operadora"
+            raw.isNullOrBlank() -> "número vazio"
+            else -> PhoneNumbers.pretty(raw)
+        }
+        val diag = buildString {
+            append(result).append(" · ").append(reason).append('\n')
+            append("Número: ").append(numberInfo).append('\n')
+            append("Verificação da operadora: ").append(verify).append('\n')
+            append("Agenda: ").append(contacts)
+        }
+        Settings(this).apply { lastCallDiag = diag; lastCallDiagAt = System.currentTimeMillis() }
     }
 
     private fun notifyBlocked(raw: String, reason: String) {

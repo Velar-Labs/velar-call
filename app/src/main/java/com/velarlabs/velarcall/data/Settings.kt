@@ -18,7 +18,7 @@ class Settings(context: Context) {
         set(v) = prefs.edit().putBoolean(K_UNKNOWN, v).apply()
 
     var blockHidden: Boolean
-        get() = prefs.getBoolean(K_HIDDEN, true)
+        get() = prefs.getBoolean(K_HIDDEN, false)
         set(v) = prefs.edit().putBoolean(K_HIDDEN, v).apply()
 
     var blockTelemarketingPrefix: Boolean
@@ -32,7 +32,7 @@ class Settings(context: Context) {
 
     /** Bloqueia chamadas cuja origem a operadora marcou como falsificada (Android 11+). */
     var blockSpoofed: Boolean
-        get() = prefs.getBoolean(K_SPOOF, true)
+        get() = prefs.getBoolean(K_SPOOF, false)
         set(v) = prefs.edit().putBoolean(K_SPOOF, v).apply()
 
     /** Deixa tocar se um número desconhecido ligar de novo em poucos minutos (pode ser urgente). */
@@ -60,6 +60,15 @@ class Settings(context: Context) {
         get() = prefs.getString(K_SYNC_MSG, "Ainda não sincronizado") ?: ""
         set(v) = prefs.edit().putString(K_SYNC_MSG, v).apply()
 
+    /** Diagnóstico: resumo da última chamada analisada (para depurar bloqueios indevidos). */
+    var lastCallDiag: String
+        get() = prefs.getString(K_DIAG, "") ?: ""
+        set(v) = prefs.edit().putString(K_DIAG, v).apply()
+
+    var lastCallDiagAt: Long
+        get() = prefs.getLong(K_DIAG_AT, 0L)
+        set(v) = prefs.edit().putLong(K_DIAG_AT, v).apply()
+
     /** Prefixos vindos da lista online (além do 0303 fixo). */
     var onlinePrefixes: Set<String>
         get() = prefs.getStringSet(K_PREFIXES, emptySet()) ?: emptySet()
@@ -82,5 +91,7 @@ class Settings(context: Context) {
         private const val K_SYNC_AT = "sync_at"
         private const val K_SYNC_MSG = "sync_msg"
         private const val K_PREFIXES = "online_prefixes"
+        private const val K_DIAG = "last_call_diag"
+        private const val K_DIAG_AT = "last_call_diag_at"
     }
 }
