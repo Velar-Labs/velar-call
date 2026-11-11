@@ -111,6 +111,7 @@ fun ListRow(
     leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
     subtitleColor: Color? = null,
+    subtitleLines: Int = 1,
     onClick: (() -> Unit)? = null,
 ) {
     Row(
@@ -126,7 +127,7 @@ fun ListRow(
             Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (subtitle != null) Text(
                 subtitle, style = MaterialTheme.typography.bodySmall,
-                color = subtitleColor ?: palette.muted, maxLines = 1, overflow = TextOverflow.Ellipsis
+                color = subtitleColor ?: palette.muted, maxLines = subtitleLines, overflow = TextOverflow.Ellipsis
             )
         }
         if (trailing != null) {

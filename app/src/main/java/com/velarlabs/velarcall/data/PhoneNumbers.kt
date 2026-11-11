@@ -31,6 +31,8 @@ object PhoneNumbers {
     fun pretty(raw: String?): String {
         val k = key(raw)
         return when {
+            // Especiais: 0303 123 4567, 0800 123 4567
+            k.startsWith("0") && k.length == 11 -> "${k.substring(0, 4)} ${k.substring(4, 7)} ${k.substring(7)}"
             k.length == 11 -> "(${k.substring(0, 2)}) ${k.substring(2, 7)}-${k.substring(7)}"
             k.length == 10 -> "(${k.substring(0, 2)}) ${k.substring(2, 6)}-${k.substring(6)}"
             k.isEmpty() -> "Número oculto"

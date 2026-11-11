@@ -23,6 +23,11 @@ class PhoneNumbersTest {
         assertEquals("08001234567", PhoneNumbers.key("0800-123-4567"))
     }
 
+    @Test fun formataEspeciais() {
+        assertEquals("0303 123 4567", PhoneNumbers.pretty("03031234567"))
+        assertEquals("(11) 98765-4321", PhoneNumbers.pretty("+5511987654321"))
+    }
+
     @Test fun ocultoViraVazio() {
         assertEquals("", PhoneNumbers.key(null))
         assertEquals("Número oculto", PhoneNumbers.pretty(""))

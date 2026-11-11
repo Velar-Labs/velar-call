@@ -208,6 +208,7 @@ private fun Step(
         ListRow(
             title = title,
             subtitle = text,
+            subtitleLines = 2,
             leading = {
                 Box(
                     Modifier.size(40.dp).clip(CircleShape)

@@ -85,7 +85,7 @@ fun HomeScreen(
     LazyColumn(contentPadding = ScreenPadding) {
         // ---------- status
         item {
-            val bg = if (active) palette.brand else palette.dangerSoft
+            val bg = if (active) HeroBlue else palette.dangerSoft
             val fg = if (active) Color.White else palette.text
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(bg).padding(24.dp)
@@ -127,9 +127,9 @@ fun HomeScreen(
                 } else {
                     Spacer(Modifier.height(20.dp))
                     Row {
-                        HeroStat("$total", "bloqueadas no total", Modifier.weight(1f))
-                        HeroStat("$blockedCount", "na sua lista", Modifier.weight(1f))
-                        HeroStat("$onlineCount", "na lista online", Modifier.weight(1f))
+                        HeroStat("$total", "no total", Modifier.weight(1f))
+                        HeroStat("$blockedCount", "sua lista", Modifier.weight(1f))
+                        HeroStat("$onlineCount", "lista online", Modifier.weight(1f))
                     }
                 }
             }
@@ -226,6 +226,9 @@ fun HomeScreen(
         onSave = { n, label -> setManual(db, PhoneNumbers.key(n), ManualStatus.BLOCKED, label); adding = false; bump() }
     )
 }
+
+/** Azul da marca fixo no card de status: mantém contraste com texto branco nos dois temas. */
+private val HeroBlue = Color(0xFF2F5BFF)
 
 @Composable
 private fun HeroStat(value: String, label: String, modifier: Modifier) {
