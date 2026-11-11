@@ -1,1 +1,70 @@
-# velar-call
+# VelarCall
+
+App Android da **Velar Labs** que identifica e bloqueia ligações indesejadas: quem está fora da sua agenda, números ocultos, telemarketing e números suspeitos de uma lista online.
+
+## Como funciona
+
+O VelarCall usa a API oficial de triagem de chamadas do Android (`CallScreeningService`). Depois que você o define como **app de identificação de chamadas e spam**, o Android consulta o app a cada ligação recebida, antes de o telefone tocar.
+
+Regras, em ordem de prioridade:
+
+| # | Regra | Resultado |
+|---|-------|-----------|
+| 1 | Número oculto | bloqueia (opcional) |
+| 2 | Origem falsificada, quando a operadora informa (Android 11+) | bloqueia (opcional) |
+| 3 | Lista **permitida** do app | toca |
+| 4 | Contato da agenda | toca |
+| 5 | Lista **bloqueada** do app | bloqueia |
+| 6 | Lista online / prefixos suspeitos | bloqueia (opcional) |
+| 7 | Prefixo 0303 (telemarketing) | bloqueia (opcional) |
+| 8 | Fora da agenda | bloqueia (opcional, ligado por padrão) |
+
+> Sem a permissão de agenda, a regra 8 fica desativada de propósito. Sem essa permissão o app não sabe quem é contato e acabaria bloqueando conhecidos.
+
+Toda a decisão acontece no aparelho. Nenhum dado das suas chamadas sai do celular. A única conexão de rede é o download da lista online.
+
+## Lista online
+
+O arquivo [`blocklist/numeros.json`](blocklist/numeros.json) deste repositório é a lista padrão. O app baixa essa lista a cada 12 h. O endereço pode ser trocado em **Ajustes**.
+
+Formatos aceitos:
+
+```json
+{
+  "prefixes": ["0303"],
+  "numbers": [
+    { "n": "11912345678", "label": "Golpe do falso banco" },
+    "21987654321"
+  ]
+}
+```
+
+Também aceita um arquivo de texto simples, com um número por linha (`numero;rotulo`). Linhas que começam com `#` são comentários.
+
+Inclua só números com denúncia confirmada. Um número legítimo na lista pública fica bloqueado para todos os usuários.
+
+## Requisitos
+
+- Android 10 (API 29) ou superior
+- Permissões: agenda (obrigatória para o bloqueio de desconhecidos) e notificações (opcional)
+
+## Compilar
+
+```bash
+./gradlew assembleDebug
+# APK em app/build/outputs/apk/debug/
+```
+
+Cada push na `main` gera o APK de debug no GitHub Actions. Ele fica em **Actions → Build APK → Artifacts**.
+
+## Estrutura
+
+```
+app/src/main/java/com/velarlabs/velarcall/
+├── screening/VelarScreeningService.kt   # recebe cada ligação e decide
+├── data/CallDecider.kt                  # regras de bloqueio
+├── data/VelarDb.kt                      # listas e histórico (SQLite)
+├── data/PhoneNumbers.kt                 # normalização de números BR
+├── sync/BlocklistSync.kt                # download da lista online
+└── ui/                                  # telas em Jetpack Compose
+```
