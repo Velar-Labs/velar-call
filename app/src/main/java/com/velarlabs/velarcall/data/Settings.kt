@@ -96,6 +96,11 @@ class Settings(context: Context) {
         get() = prefs.getInt(K_QUIET_END, 7 * 60)
         set(v) = prefs.edit().putInt(K_QUIET_END, v).apply()
 
+    /** Dias do horário silencioso (Calendar.DAY_OF_WEEK: 1=domingo..7=sábado). Vazio = todos os dias. */
+    var quietDays: Set<Int>
+        get() = (prefs.getStringSet(K_QUIET_DAYS, emptySet()) ?: emptySet()).mapNotNull { it.toIntOrNull() }.toSet()
+        set(v) = prefs.edit().putStringSet(K_QUIET_DAYS, v.map { it.toString() }.toSet()).apply()
+
     /** Prefixos vindos da lista online (além do 0303 fixo). */
     var onlinePrefixes: Set<String>
         get() = prefs.getStringSet(K_PREFIXES, emptySet()) ?: emptySet()
@@ -123,6 +128,7 @@ class Settings(context: Context) {
         private const val K_QUIET = "quiet_enabled"
         private const val K_QUIET_START = "quiet_start"
         private const val K_QUIET_END = "quiet_end"
+        private const val K_QUIET_DAYS = "quiet_days"
         private const val K_DIAG = "last_call_diag"
         private const val K_DIAG_AT = "last_call_diag_at"
     }

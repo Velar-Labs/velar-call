@@ -50,7 +50,7 @@ class VelarScreeningService : CallScreeningService() {
         // Silenciar (em vez de rejeitar) deixa a chamada cair no correio de voz da operadora,
         // onde quem ligou pode deixar um recado. Rejeitar corta na hora.
         val toVoicemail = decision is Decision.Block && Settings(this).sendBlockedToVoicemail
-        recordDiagnostic(details, raw, verifyStatus, decider, decision, toVoicemail)
+        val detail = recordDiagnostic(details, raw, verifyStatus, decider, decision, toVoicemail)
 
         val response = when {
             decision is Decision.Allow -> CallResponse.Builder().build()
@@ -69,7 +69,7 @@ class VelarScreeningService : CallScreeningService() {
 
         if (decision is Decision.Block) {
             val shown = raw.orEmpty()
-            VelarDb.get(this).logBlocked(shown, decision.reason, toVoicemail)
+            VelarDb.get(this).logBlocked(shown, decision.reason, toVoicemail, detail)
             notifyBlocked(shown, decision.reason, toVoicemail)
         }
     }
@@ -82,7 +82,7 @@ class VelarScreeningService : CallScreeningService() {
         decider: CallDecider,
         decision: Decision,
         toVoicemail: Boolean,
-    ) {
+    ): String {
         val verify = when (verifyStatus) {
             Connection.VERIFICATION_STATUS_PASSED -> "verificado"
             Connection.VERIFICATION_STATUS_FAILED -> "falhou (suspeito de forjado)"
@@ -109,6 +109,7 @@ class VelarScreeningService : CallScreeningService() {
             append("Agenda: ").append(contacts)
         }
         Settings(this).apply { lastCallDiag = diag; lastCallDiagAt = System.currentTimeMillis() }
+        return diag
     }
 
     private fun notifyBlocked(raw: String, reason: String, toVoicemail: Boolean) {

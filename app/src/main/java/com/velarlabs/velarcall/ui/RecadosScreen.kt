@@ -3,6 +3,7 @@ package com.velarlabs.velarcall.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SegmentedButton
@@ -34,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.velarlabs.velarcall.data.BlockedCall
 import com.velarlabs.velarcall.data.PhoneNumbers
 import com.velarlabs.velarcall.data.Settings
 import com.velarlabs.velarcall.data.VelarDb
@@ -46,7 +52,7 @@ fun RecadosScreen(tick: Int, bump: () -> Unit) {
     val calls = remember(tick) { db.blocked(500) }
     val groups = remember(calls) { calls.groupBy { dayLabel(it.at) } }
     val toVoicemail = remember(tick) { settings.sendBlockedToVoicemail }
-    var selected by remember { mutableStateOf<String?>(null) }
+    var selected by remember { mutableStateOf<BlockedCall?>(null) }
     var confirmClear by remember { mutableStateOf(false) }
 
     LazyColumn(contentPadding = ScreenPadding) {
@@ -140,7 +146,7 @@ fun RecadosScreen(tick: Int, bump: () -> Unit) {
                                         }
                                     }
                                 },
-                                onClick = { if (canCall) selected = c.number }
+                                onClick = { selected = c }
                             )
                         }
                     }
@@ -156,7 +162,7 @@ fun RecadosScreen(tick: Int, bump: () -> Unit) {
         }
     }
 
-    selected?.let { n -> NumberSheet(raw = n, onDismiss = { selected = null }, onChanged = bump) }
+    selected?.let { c -> CallDetailSheet(call = c, onDismiss = { selected = null }, onChanged = bump) }
     if (confirmClear) ConfirmDialog(
         title = "Limpar lista?",
         text = "Os registros de chamadas serão apagados. Suas listas e o correio de voz da operadora não mudam.",
@@ -165,6 +171,82 @@ fun RecadosScreen(tick: Int, bump: () -> Unit) {
         onDismiss = { confirmClear = false }
     )
 }
+
+/** Detalhe de uma chamada: motivo, diagnóstico e ações. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@androidx.compose.runtime.Composable
+fun CallDetailSheet(call: BlockedCall, onDismiss: () -> Unit, onChanged: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val db = remember { VelarDb.get(context) }
+    val key = PhoneNumbers.key(call.number)
+    var status by remember(key) { mutableStateOf(manualStatus(db, key)) }
+
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = palette.surface,
+    ) {
+        Column(
+            Modifier.fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Avatar(PhoneNumbers.pretty(call.number), size = 52.dp) {
+                    if (call.toVoicemail) Icon(voicemailPainter(), null, tint = palette.brand, modifier = Modifier.size(22.dp))
+                    else Icon(Icons.Filled.Call, null, tint = palette.danger, modifier = Modifier.size(22.dp))
+                }
+                Spacer(Modifier.size(14.dp))
+                Column {
+                    Text(PhoneNumbers.pretty(call.number), style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        (if (call.toVoicemail) "${call.reason} · correio de voz" else call.reason) +
+                            "  ·  ${dayLabel(call.at)} ${timeLabel(call.at)}",
+                        style = MaterialTheme.typography.bodySmall, color = palette.muted
+                    )
+                }
+            }
+            if (call.detail.isNotBlank()) {
+                Spacer(Modifier.height(14.dp))
+                Panel {
+                    Text(
+                        call.detail, style = MaterialTheme.typography.bodyMedium, color = palette.text,
+                        modifier = Modifier.padding(14.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (key.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = { callNumber(context, call.number) },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.weight(1f).height(48.dp)
+                    ) {
+                        Icon(Icons.Filled.Call, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.size(6.dp))
+                        Text("Ligar de volta")
+                    }
+                    if (status == ManualStatus.BLOCKED) {
+                        Button(
+                            onClick = { setManual(db, key, ManualStatus.NONE); status = ManualStatus.NONE; onChanged() },
+                            colors = ButtonDefaults.buttonColors(containerColor = palette.success, contentColor = Color.White),
+                            shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).height(48.dp)
+                        ) { Text("Permitir sempre") }
+                    } else {
+                        Button(
+                            onClick = { setManual(db, key, ManualStatus.BLOCKED); status = ManualStatus.BLOCKED; onChanged() },
+                            colors = ButtonDefaults.buttonColors(containerColor = palette.danger, contentColor = Color.White),
+                            shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).height(48.dp)
+                        ) { Text("Bloquear sempre") }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 /** Abre o discador na ligação de volta (ACTION_DIAL não precisa de permissão). */
 fun callNumber(context: Context, rawNumber: String) {

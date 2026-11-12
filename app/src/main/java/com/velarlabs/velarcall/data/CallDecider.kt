@@ -141,7 +141,10 @@ class CallDecider(private val context: Context) {
             return Decision.Block("Prefixo bloqueado $it")
         }
         if (settings.quietHoursEnabled &&
-            QuietHours.isActive(QuietHours.nowMinutes(), settings.quietStart, settings.quietEnd)
+            QuietHours.isActiveOn(
+                QuietHours.nowMinutes(), settings.quietStart, settings.quietEnd,
+                QuietHours.today(), settings.quietDays
+            )
         ) {
             return Decision.Block("Horário silencioso")
         }

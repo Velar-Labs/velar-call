@@ -30,4 +30,12 @@ class QuietHoursTest {
         assertEquals("22:00", QuietHours.format(22 * 60))
         assertEquals("07:05", QuietHours.format(7 * 60 + 5))
     }
+
+    @Test fun diasDaSemana() {
+        // Terça-feira = 3 (Calendar.DAY_OF_WEEK)
+        assertTrue(QuietHours.isActiveOn(10 * 60, 9 * 60, 17 * 60, today = 3, days = setOf(3, 4, 5)))
+        assertFalse(QuietHours.isActiveOn(10 * 60, 9 * 60, 17 * 60, today = 1, days = setOf(3, 4, 5)))
+        // vazio = todos os dias
+        assertTrue(QuietHours.isActiveOn(10 * 60, 9 * 60, 17 * 60, today = 1, days = emptySet()))
+    }
 }

@@ -74,6 +74,10 @@ fun HomeScreen(
     val recent = remember(tick) { db.blocked(4) }
     val onlineCount = remember(tick) { db.count(ListType.ONLINE) }
     val blockedCount = remember(tick) { db.count(ListType.BLOCK) }
+    val weekStart = remember(tick) { startOfToday() - 6 * android.text.format.DateUtils.DAY_IN_MILLIS }
+    val weekCount = remember(tick) { db.blockedSince(weekStart) }
+    val perDay = remember(tick) { db.blockedPerDay(7, startOfToday(), android.text.format.DateUtils.DAY_IN_MILLIS) }
+    val topReasons = remember(tick) { db.topReasonsSince(weekStart, 3) }
 
     var lookup by remember { mutableStateOf(false) }
     var sheetNumber by remember { mutableStateOf<String?>(null) }
@@ -178,6 +182,33 @@ fun HomeScreen(
             }
         }
 
+        // ---------- resumo da semana
+        if (total > 0) {
+            item {
+                SectionLabel("ÚLTIMOS 7 DIAS")
+                Panel {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text(
+                            "$weekCount ${if (weekCount == 1) "chamada bloqueada" else "chamadas bloqueadas"}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        WeekBars(perDay)
+                        if (topReasons.isNotEmpty()) {
+                            Spacer(Modifier.height(16.dp))
+                            topReasons.forEachIndexed { i, (reason, count) ->
+                                if (i > 0) Spacer(Modifier.height(6.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(reason, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                    Text("$count", style = MaterialTheme.typography.bodyMedium, color = palette.muted)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // ---------- recentes
         item {
             Row(
@@ -229,6 +260,43 @@ fun HomeScreen(
 
 /** Azul da marca fixo no card de status: mantém contraste com texto branco nos dois temas. */
 private val HeroBlue = Color(0xFF2F5BFF)
+
+@Composable
+private fun WeekBars(perDay: IntArray) {
+    val max = (perDay.maxOrNull() ?: 0).coerceAtLeast(1)
+    val letters = remember(perDay) {
+        val cal = java.util.Calendar.getInstance()
+        cal.timeInMillis = startOfToday()
+        val l = CharArray(7)
+        for (i in 6 downTo 0) {
+            l[i] = "DSTQQSS"[cal.get(java.util.Calendar.DAY_OF_WEEK) - 1]
+            cal.add(java.util.Calendar.DAY_OF_MONTH, -1)
+        }
+        l
+    }
+    Column {
+        Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.Bottom) {
+            perDay.forEachIndexed { i, v ->
+                val today = i == perDay.lastIndex
+                Box(
+                    Modifier.weight(1f).padding(horizontal = 3.dp)
+                        .height((6 + (v.toFloat() / max) * 48).dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (today) palette.brand else palette.brandSoft)
+                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth()) {
+            letters.forEach { ch ->
+                Text(
+                    ch.toString(), style = MaterialTheme.typography.labelMedium, color = palette.muted,
+                    textAlign = TextAlign.Center, modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun HeroStat(value: String, label: String, modifier: Modifier) {

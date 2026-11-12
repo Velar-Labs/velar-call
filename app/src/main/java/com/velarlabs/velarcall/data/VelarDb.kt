@@ -16,11 +16,12 @@ data class BlockedCall(
     val reason: String,
     val at: Long,
     val toVoicemail: Boolean = false,
+    val detail: String = "",
 )
 
 /** Banco local simples (SQLite puro, sem geração de código). */
 class VelarDb private constructor(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "velarcall.db", null, 2) {
+    SQLiteOpenHelper(context.applicationContext, "velarcall.db", null, 3) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -29,7 +30,8 @@ class VelarDb private constructor(context: Context) :
         )
         db.execSQL(
             "CREATE TABLE blocked (id INTEGER PRIMARY KEY AUTOINCREMENT, num TEXT NOT NULL, " +
-                "reason TEXT NOT NULL, at INTEGER NOT NULL, voicemail INTEGER NOT NULL DEFAULT 0)"
+                "reason TEXT NOT NULL, at INTEGER NOT NULL, voicemail INTEGER NOT NULL DEFAULT 0, " +
+                "detail TEXT NOT NULL DEFAULT '')"
         )
         db.execSQL("CREATE INDEX idx_blocked_at ON blocked(at)")
     }
@@ -37,6 +39,9 @@ class VelarDb private constructor(context: Context) :
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
             db.execSQL("ALTER TABLE blocked ADD COLUMN voicemail INTEGER NOT NULL DEFAULT 0")
+        }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE blocked ADD COLUMN detail TEXT NOT NULL DEFAULT ''")
         }
     }
 
@@ -111,10 +116,12 @@ class VelarDb private constructor(context: Context) :
         number: String,
         reason: String,
         toVoicemail: Boolean = false,
+        detail: String = "",
         at: Long = System.currentTimeMillis(),
     ) {
         writableDatabase.insert("blocked", null, ContentValues().apply {
-            put("num", number); put("reason", reason); put("at", at); put("voicemail", if (toVoicemail) 1 else 0)
+            put("num", number); put("reason", reason); put("at", at)
+            put("voicemail", if (toVoicemail) 1 else 0); put("detail", detail)
         })
         // Mantém só os 1000 registros mais recentes.
         writableDatabase.execSQL(
@@ -126,11 +133,11 @@ class VelarDb private constructor(context: Context) :
     fun blocked(limit: Int = 200, onlyVoicemail: Boolean = false): List<BlockedCall> {
         val where = if (onlyVoicemail) "WHERE voicemail = 1 " else ""
         return readableDatabase.rawQuery(
-            "SELECT id, num, reason, at, voicemail FROM blocked $where ORDER BY at DESC LIMIT $limit", null
+            "SELECT id, num, reason, at, voicemail, detail FROM blocked $where ORDER BY at DESC LIMIT $limit", null
         ).use { c ->
             buildList {
                 while (c.moveToNext())
-                    add(BlockedCall(c.getLong(0), c.getString(1), c.getString(2), c.getLong(3), c.getInt(4) == 1))
+                    add(BlockedCall(c.getLong(0), c.getString(1), c.getString(2), c.getLong(3), c.getInt(4) == 1, c.getString(5)))
             }
         }
     }
@@ -138,6 +145,28 @@ class VelarDb private constructor(context: Context) :
     fun blockedSince(since: Long): Int =
         readableDatabase.rawQuery("SELECT COUNT(*) FROM blocked WHERE at >= ?", arrayOf(since.toString()))
             .use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
+
+    /** Motivos mais frequentes desde [since]. */
+    fun topReasonsSince(since: Long, limit: Int = 3): List<Pair<String, Int>> =
+        readableDatabase.rawQuery(
+            "SELECT reason, COUNT(*) c FROM blocked WHERE at >= ? GROUP BY reason ORDER BY c DESC LIMIT $limit",
+            arrayOf(since.toString())
+        ).use { c -> buildList { while (c.moveToNext()) add(c.getString(0) to c.getInt(1)) } }
+
+    /** Contagem de bloqueios por dia nos últimos [days] dias (índice 0 = há [days]-1 dias, último = hoje). */
+    fun blockedPerDay(days: Int, dayStartMillis: Long, dayMillis: Long): IntArray {
+        val out = IntArray(days)
+        val from = dayStartMillis - (days - 1) * dayMillis
+        readableDatabase.rawQuery(
+            "SELECT at FROM blocked WHERE at >= ?", arrayOf(from.toString())
+        ).use { c ->
+            while (c.moveToNext()) {
+                val idx = ((c.getLong(0) - from) / dayMillis).toInt()
+                if (idx in 0 until days) out[idx]++
+            }
+        }
+        return out
+    }
 
     /** Números (crus) bloqueados desde [since]. */
     fun blockedNumbersSince(since: Long): List<String> =

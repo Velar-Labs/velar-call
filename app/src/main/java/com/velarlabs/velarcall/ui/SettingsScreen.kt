@@ -3,7 +3,11 @@ package com.velarlabs.velarcall.ui
 import android.app.TimePickerDialog
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +35,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -282,6 +288,27 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
                         subtitle = QuietHours.format(settings.quietEnd),
                         onClick = { pickTime(settings.quietEnd) { settings.quietEnd = it; bump() } }
                     )
+                    RowDivider(16.dp)
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Dias", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(10.dp))
+                        val days = remember(tick) { settings.quietDays }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            "DSTQQSS".forEachIndexed { i, ch ->
+                                val day = i + 1
+                                val eff = if (days.isEmpty()) (1..7).toSet() else days
+                                DayChip(ch.toString(), day in eff) {
+                                    val ne = if (day in eff) eff - day else eff + day
+                                    settings.quietDays = when {
+                                        ne.size == 7 -> emptySet()
+                                        ne.isEmpty() -> eff
+                                        else -> ne
+                                    }
+                                    bump()
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -333,5 +360,22 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun DayChip(label: String, on: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.size(40.dp).clip(CircleShape)
+            .background(if (on) palette.brand else palette.surfaceAlt)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (on) palette.onBrand else palette.muted,
+            textAlign = TextAlign.Center
+        )
     }
 }
