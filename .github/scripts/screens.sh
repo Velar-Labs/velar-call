@@ -134,6 +134,7 @@ tap_text "0303 123 4567"; sleep 1; shot 05b-detalhe; adb shell input keyevent KE
 tap_text "Agenda"; shot 06-agenda-com-bloqueio
 tap_text "Listas"; shot 09-listas
 tap_text "Ajustes"; shot 10-ajustes
+tap_text "Procurar atualização"; sleep 4; shot 10a-atualizacao
 adb shell input swipe 540 1600 540 400; sleep 1; shot 10b-ajustes-rolado
 adb shell input swipe 540 1600 540 300; sleep 1; shot 10c-ajustes-prefixos
 tap_text "Horário silencioso"; sleep 1; shot 10c2-horario-dias
