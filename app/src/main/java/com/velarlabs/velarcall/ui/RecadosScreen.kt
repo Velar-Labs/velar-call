@@ -20,6 +20,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -47,42 +50,45 @@ fun RecadosScreen(tick: Int, bump: () -> Unit) {
     var confirmClear by remember { mutableStateOf(false) }
 
     LazyColumn(contentPadding = ScreenPadding) {
-        // ---------- cabeçalho: correio de voz
+        // ---------- cabeçalho: o que fazer com a chamada bloqueada
         item {
             Panel {
                 Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(voicemailPainter(), null, tint = palette.brand, modifier = Modifier.size(26.dp))
                         Spacer(Modifier.size(12.dp))
-                        Text("Correio de voz", style = MaterialTheme.typography.titleMedium)
+                        Text("Ao bloquear uma chamada", style = MaterialTheme.typography.titleMedium)
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(12.dp))
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                        SegmentedButton(
+                            selected = toVoicemail,
+                            onClick = { settings.sendBlockedToVoicemail = true; bump() },
+                            shape = SegmentedButtonDefaults.itemShape(0, 2)
+                        ) { Text("Correio de voz") }
+                        SegmentedButton(
+                            selected = !toVoicemail,
+                            onClick = { settings.sendBlockedToVoicemail = false; bump() },
+                            shape = SegmentedButtonDefaults.itemShape(1, 2)
+                        ) { Text("Rejeitar") }
+                    }
+                    Spacer(Modifier.height(10.dp))
                     Text(
                         if (toVoicemail)
-                            "Chamadas bloqueadas e de fora da agenda são silenciadas e caem no correio de voz da sua operadora. Quem ligou pode deixar um recado, e você ouve e retorna por aqui."
+                            "Silencia a chamada e deixa cair no correio de voz da sua operadora. Quem ligou pode deixar um recado, e você ouve e retorna por aqui."
                         else
-                            "As chamadas bloqueadas são recusadas na hora. Ligue a opção abaixo para deixá-las caírem no correio de voz, onde a pessoa pode deixar um recado.",
+                            "Recusa a chamada na hora, como ao declinar uma ligação. Na maioria das operadoras ainda cai no correio de voz, mais rápido.",
                         style = MaterialTheme.typography.bodyMedium, color = palette.muted
                     )
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { openVoicemail(context) },
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(6.dp))
-                        Text("Ouvir correio de voz")
+                    if (toVoicemail) {
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedButton(onClick = { openVoicemail(context) }, shape = RoundedCornerShape(14.dp)) {
+                            Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.size(6.dp))
+                            Text("Ouvir correio de voz")
+                        }
                     }
                 }
-            }
-        }
-        item {
-            Panel {
-                ToggleRow(
-                    "Deixar cair no correio de voz",
-                    "Silencia a chamada bloqueada em vez de recusá-la, para a pessoa poder deixar um recado.",
-                    toVoicemail
-                ) { settings.sendBlockedToVoicemail = it; bump() }
             }
         }
 

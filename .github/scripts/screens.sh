@@ -99,7 +99,7 @@ shot 03-inicio-vazio
 
 # 3) prepara: desliga o correio de voz (para o bloqueio ser rejeição) e bloqueia um contato
 tap_text "Recados"
-tap_text "Deixar cair no correio de voz"   # padrão ligado -> desliga
+tap_text "Rejeitar"   # padrão correio de voz -> muda para rejeitar
 shot 03b-recados-voz-off
 adb shell am start -W -n $PKG/.ui.MainActivity >/dev/null
 tap_text "Agenda"
@@ -122,7 +122,7 @@ test_call 21988887777 BLOQUEIA "contato bloqueado pela aba Agenda"
 # 5) correio de voz LIGADO -> bloqueado é silenciado (segue para o correio), callState 1
 adb shell am start -W -n $PKG/.ui.MainActivity >/dev/null
 tap_text "Recados"
-tap_text "Deixar cair no correio de voz"   # religa
+tap_text "Correio de voz"   # volta para o modo correio de voz
 adb shell input keyevent KEYCODE_HOME
 test_call 11955553333 TOCA "bloqueado com correio de voz (silenciado)"
 
