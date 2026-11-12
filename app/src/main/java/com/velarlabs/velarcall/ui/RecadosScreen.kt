@@ -43,6 +43,7 @@ import com.velarlabs.velarcall.data.BlockedCall
 import com.velarlabs.velarcall.data.PhoneNumbers
 import com.velarlabs.velarcall.data.Settings
 import com.velarlabs.velarcall.data.VelarDb
+import kotlinx.coroutines.launch
 
 @Composable
 fun RecadosScreen(tick: Int, bump: () -> Unit) {
@@ -178,8 +179,10 @@ fun RecadosScreen(tick: Int, bump: () -> Unit) {
 fun CallDetailSheet(call: BlockedCall, onDismiss: () -> Unit, onChanged: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val db = remember { VelarDb.get(context) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val key = PhoneNumbers.key(call.number)
     var status by remember(key) { mutableStateOf(manualStatus(db, key)) }
+    var reporting by remember { mutableStateOf(false) }
 
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -241,6 +244,24 @@ fun CallDetailSheet(call: BlockedCall, onDismiss: () -> Unit, onChanged: () -> U
                             shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).height(48.dp)
                         ) { Text("Bloquear sempre") }
                     }
+                }
+                if (key.isNotEmpty()) {
+                    androidx.compose.material3.TextButton(
+                        enabled = !reporting,
+                        onClick = {
+                            reporting = true
+                            scope.launch {
+                                val ok = com.velarlabs.velarcall.sync.Reporter.report(context, call.number)
+                                reporting = false
+                                android.widget.Toast.makeText(
+                                    context,
+                                    if (ok) "Denunciado. Obrigado por ajudar a proteger todos!" else "Não consegui enviar a denúncia agora.",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(if (reporting) "Enviando…" else "Denunciar como spam") }
                 }
             }
         }

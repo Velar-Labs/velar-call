@@ -29,6 +29,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,6 +80,7 @@ fun NumberSheet(
     val key = PhoneNumbers.key(raw)
     var status by remember(key) { mutableStateOf(manualStatus(db, key)) }
     val decision = remember(key, status) { decider.decide(raw, ignoreMasterSwitch = true) }
+    val scope = rememberCoroutineScope()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -119,6 +122,23 @@ fun NumberSheet(
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(if (status == ManualStatus.BLOCKED) "Desbloquear" else "Tirar da lista permitida") }
                 }
+                var reporting by remember(key) { mutableStateOf(false) }
+                TextButton(
+                    enabled = !reporting,
+                    onClick = {
+                        reporting = true
+                        scope.launch {
+                            val ok = com.velarlabs.velarcall.sync.Reporter.report(context, raw ?: "", label)
+                            reporting = false
+                            android.widget.Toast.makeText(
+                                context,
+                                if (ok) "Denunciado. Obrigado por ajudar a proteger todos!" else "Não consegui enviar a denúncia agora.",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(if (reporting) "Enviando…" else "Denunciar como spam") }
             }
         }
     }

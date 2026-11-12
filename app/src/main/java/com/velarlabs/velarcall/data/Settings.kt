@@ -120,9 +120,19 @@ class Settings(context: Context) {
         get() = prefs.getStringSet(K_PREFIXES, emptySet()) ?: emptySet()
         set(v) = prefs.edit().putStringSet(K_PREFIXES, v).apply()
 
+    /** Id anônimo do aparelho (UUID), criado na primeira leitura. Usado só como hash nas denúncias. */
+    val deviceId: String
+        get() {
+            val cur = prefs.getString(K_DEVICE, null)
+            if (cur != null) return cur
+            val novo = java.util.UUID.randomUUID().toString()
+            prefs.edit().putString(K_DEVICE, novo).apply()
+            return novo
+        }
+
     companion object {
         const val DEFAULT_LIST_URL =
-            "https://raw.githubusercontent.com/Velar-Labs/velar-call/main/blocklist/numeros.json"
+            "https://iznyfavweqoufiznmmxi.supabase.co/functions/v1/blocklist"
         private const val K_ON = "protection_on"
         private const val K_UNKNOWN = "block_unknown"
         private const val K_HIDDEN = "block_hidden"
@@ -143,6 +153,7 @@ class Settings(context: Context) {
         private const val K_QUIET_START = "quiet_start"
         private const val K_QUIET_END = "quiet_end"
         private const val K_QUIET_DAYS = "quiet_days"
+        private const val K_DEVICE = "device_id"
         private const val K_AUTOUPD = "auto_update"
         private const val K_UPD_AT = "update_check_at"
         private const val K_UPD_VER = "update_notified_version"
