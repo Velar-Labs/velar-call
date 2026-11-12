@@ -130,11 +130,13 @@ test_call 11955553333 TOCA "bloqueado com correio de voz (silenciado)"
 adb shell am start -W -n $PKG/.ui.MainActivity >/dev/null
 shot 04-inicio
 tap_text "Recados"; shot 05-recados
+tap_text "0303 123 4567"; sleep 1; shot 05b-detalhe; adb shell input keyevent KEYCODE_BACK; sleep 1
 tap_text "Agenda"; shot 06-agenda-com-bloqueio
 tap_text "Listas"; shot 09-listas
 tap_text "Ajustes"; shot 10-ajustes
 adb shell input swipe 540 1600 540 400; sleep 1; shot 10b-ajustes-rolado
 adb shell input swipe 540 1600 540 300; sleep 1; shot 10c-ajustes-prefixos
+tap_text "Horário silencioso"; sleep 1; shot 10c2-horario-dias
 adb shell input swipe 540 1600 540 300; sleep 1; shot 10d-ajustes-backup
 
 # 5) tema escuro (inclui boas-vindas)
