@@ -7,7 +7,7 @@ Aplicativo Android da **Velar Labs** que identifica e bloqueia chamadas indeseja
 - **Repositório:** `Velar-Labs/velar-call`
 - **Plataforma:** Android 10 (API 29) ou superior
 - **Tecnologia:** Kotlin + Jetpack Compose (Material 3)
-- **Versão atual:** 0.5.0
+- **Versão atual:** 0.7.0
 - **Licença de uso dos dados:** nenhuma informação das suas chamadas sai do celular
 
 ---
@@ -30,10 +30,12 @@ Um contato da agenda **sempre toca**, a não ser que você mesmo o tenha bloquea
 | 6 | Origem falsificada (operadora) | bloqueia só se você ativar (padrão: desligado) |
 | 7 | Número/prefixo da **lista online** | bloqueia (se ativado) |
 | 8 | Prefixo de telemarketing **0303** | bloqueia (se ativado) |
-| 9 | Mesmo desconhecido ligando de novo em 3 min | permite (se ativado) |
-| 10 | **Fora da agenda** | bloqueia (se ativado e com acesso à agenda) |
+| 9 | **Prefixo que você bloqueou** (0800, DDD, etc.) | bloqueia |
+| 10 | **Horário silencioso** (dias e faixa que você definir) | bloqueia |
+| 11 | Mesmo desconhecido ligando de novo em 3 min | permite (se ativado) |
+| 12 | **Fora da agenda** | bloqueia (se ativado e com acesso à agenda) |
 
-> Sem permissão de agenda, a regra 10 fica desativada de propósito: sem ela o app não sabe quem é contato e barraria conhecidos.
+> Sem permissão de agenda, a regra 12 fica desativada de propósito: sem ela o app não sabe quem é contato e barraria conhecidos.
 
 ### Casamento de número robusto
 
@@ -43,11 +45,13 @@ O número que chega da operadora (ex.: `+5511988887777`) é normalizado pelo pr�
 
 ## 2. Telas (abas)
 
-- **Início** — estado da proteção, contadores do dia/total, ações rápidas (consultar número, bloquear, agenda, atualizar lista) e as últimas chamadas bloqueadas.
-- **Recados** — o que fazer ao bloquear uma chamada: **Correio de voz** (silencia e deixa cair no correio de voz da operadora, para a pessoa deixar recado) ou **Rejeitar** (recusa na hora). Botão para ouvir o correio de voz, ligar de volta num toque e histórico marcando o que foi ao correio.
+- **Início** — estado da proteção, contadores do dia/total, ações rápidas (consultar número, bloquear, agenda, atualizar lista), um **resumo dos últimos 7 dias** (mini gráfico por dia e motivos mais comuns) e as últimas chamadas bloqueadas.
+- **Recados** — o que fazer ao bloquear uma chamada: **Correio de voz** (silencia e deixa cair no correio de voz da operadora, para a pessoa deixar recado) ou **Rejeitar** (recusa na hora). Botão para ouvir o correio de voz, ligar de volta num toque e histórico marcando o que foi ao correio. Tocar numa chamada abre o **detalhe daquela ligação** (motivo, diagnóstico e ações).
 - **Agenda** — lista os contatos do telefone, com busca e filtro "Bloqueados". Um toque bloqueia ou libera o contato.
 - **Listas** — números liberados e bloqueados manualmente, com busca e "Desfazer" ao remover.
-- **Ajustes** — todos os interruptores de bloqueio, a lista online (endereço e sincronização), notificações e a tela **"Última chamada analisada"** para diagnóstico no aparelho.
+- **Ajustes** — interruptores de bloqueio, **bloqueio por prefixo** (0800/0300/0500/0900 ou personalizado), **horário silencioso** (faixa e dias da semana), lista online, notificações, **backup e restauração** das listas e a tela **"Última chamada analisada"** para diagnóstico.
+
+Há ainda um **atalho nas Configurações Rápidas do Android** para ligar/desligar a proteção sem abrir o app.
 
 ---
 
@@ -89,13 +93,17 @@ Também aceita texto simples (um número por linha, `numero;rotulo`, `#` para co
 
 ```
 app/src/main/java/com/velarlabs/velarcall/
-├── screening/VelarScreeningService.kt   # recebe cada ligação, decide e registra diagnóstico
+├── screening/
+│   ├── VelarScreeningService.kt          # recebe cada ligação, decide e registra diagnóstico
+│   └── VelarTileService.kt               # atalho nas Configurações Rápidas
 ├── data/
 │   ├── CallDecider.kt                    # regras de bloqueio (a lógica central)
-│   ├── VelarDb.kt                        # listas e histórico (SQLite, v2)
+│   ├── VelarDb.kt                        # listas e histórico (SQLite, v3)
 │   ├── ContactsRepo.kt                   # leitura da agenda
 │   ├── PhoneNumbers.kt                   # normalização de números brasileiros
 │   ├── Settings.kt                       # preferências (SharedPreferences)
+│   ├── QuietHours.kt                     # lógica do horário silencioso (testável)
+│   ├── Backup.kt                         # exportar/importar listas em JSON
 │   └── ...
 ├── sync/BlocklistSync.kt                 # download da lista online (WorkManager, 12 h)
 └── ui/                                   # telas em Jetpack Compose
@@ -117,11 +125,11 @@ app/src/main/java/com/velarlabs/velarcall/
 ### Integração contínua (GitHub Actions)
 - **Build APK** — a cada push, compila e roda os testes.
 - **Screenshots** — a cada push na branch `ci/screenshots`, roda o app num emulador Android 14, **simula ligações reais** (contato, desconhecido, 0303, +55 vs nacional, etc.), confere o resultado e publica as capturas na branch `screenshots`.
-- **Release** — ao mudar o arquivo [`VERSION`](../VERSION) na `main`, compila o **APK assinado** e publica em *Releases*.
+- **Release** — ao mudar o arquivo [`VERSION`](../VERSION) na `main`, compila o **APK e o AAB assinados** (AAB para a Play Store) e publica em *Releases*.
 
 ### Publicar uma versão
 1. Edite o arquivo `VERSION` (ex.: `0.6.0`) na `main`.
-2. O workflow **Release** gera e publica o APK assinado sozinho.
+2. O workflow **Release** gera e publica o APK e o AAB assinados sozinho.
 
 Exige os secrets `KEYSTORE_BASE64` e `KEYSTORE_PASSWORD` (chave de assinatura — guarde o `.jks` fora do GitHub; sem ela não há como atualizar o app por cima).
 
@@ -136,6 +144,8 @@ Exige os secrets `KEYSTORE_BASE64` e `KEYSTORE_PASSWORD` (chave de assinatura �
 | 0.3.0 | Correção do bloqueio de contatos; contatos sempre tocam antes dos bloqueios automáticos; diagnóstico no aparelho; padrões mais seguros |
 | 0.4.0 | Correio de voz: silencia e deixa cair no correio da operadora; aba Recados |
 | 0.5.0 | Escolha entre "Correio de voz" e "Rejeitar" ao bloquear |
+| 0.6.0 | Backup das listas; bloqueio por prefixo; horário silencioso; AAB para a Play Store; política de privacidade e ficha da loja |
+| 0.7.0 | Detalhe por chamada; horário silencioso por dia da semana; atalho nas Configurações Rápidas; resumo dos últimos 7 dias |
 
 ---
 
@@ -149,11 +159,13 @@ Exige os secrets `KEYSTORE_BASE64` e `KEYSTORE_PASSWORD` (chave de assinatura �
 
 ## 10. Próximos passos (roadmap)
 
-1. **Botão "Denunciar número"** alimentando um banco compartilhado (ex.: Supabase) com moderação — é o que faz a lista online ter valor real.
-2. **Backup das listas** (exportar/importar) para trocar de celular sem perder nada.
-3. **Bloqueio por padrão** (ex.: todos os 0800, DDDs específicos) e **horário silencioso**.
-4. Preparação para a **Play Store** (revisão de permissões).
+Já entregues: backup das listas, bloqueio por prefixo, horário silencioso (com dias), AAB e documentos para a Play Store, detalhe por chamada, atalho rápido e estatísticas.
+
+Pendente:
+
+1. **Botão "Denunciar número"** alimentando um banco compartilhado (ex.: Supabase) com moderação — é o que faz a lista online ter valor real. (Adiado a pedido.)
+2. **Publicação na Play Store** — depende de uma conta no Google Play Console e de hospedar a política de privacidade numa URL pública; o AAB já sai pronto em cada *Release*.
 
 ---
 
-*Velar Labs — VelarCall. Documento gerado em 11/11/2026.*
+*Velar Labs — VelarCall. Documento atualizado em 11/11/2026 (v0.7.0).*
