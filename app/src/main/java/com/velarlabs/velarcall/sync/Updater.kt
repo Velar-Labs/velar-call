@@ -88,7 +88,7 @@ object Updater {
         conn.setRequestProperty("User-Agent", "VelarCall/${currentVersion()}")
         try {
             if (conn.responseCode !in 200..299) error("HTTP ${conn.responseCode}")
-            conn.inputStream.use { input -> out.outputStream.use { input.copyTo(it) } }
+            conn.inputStream.use { input -> out.outputStream().use { input.copyTo(it) } }
         } finally {
             conn.disconnect()
         }
