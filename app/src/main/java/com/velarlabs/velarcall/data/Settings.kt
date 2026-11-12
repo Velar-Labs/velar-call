@@ -68,6 +68,20 @@ class Settings(context: Context) {
         get() = prefs.getString(K_SYNC_MSG, "Ainda não sincronizado") ?: ""
         set(v) = prefs.edit().putString(K_SYNC_MSG, v).apply()
 
+    /** Verifica e avisa sozinho quando há versão nova no GitHub. */
+    var autoUpdate: Boolean
+        get() = prefs.getBoolean(K_AUTOUPD, true)
+        set(v) = prefs.edit().putBoolean(K_AUTOUPD, v).apply()
+
+    var lastUpdateCheckAt: Long
+        get() = prefs.getLong(K_UPD_AT, 0L)
+        set(v) = prefs.edit().putLong(K_UPD_AT, v).apply()
+
+    /** Última versão já avisada, para não notificar repetido. */
+    var updateNotifiedVersion: String
+        get() = prefs.getString(K_UPD_VER, "") ?: ""
+        set(v) = prefs.edit().putString(K_UPD_VER, v).apply()
+
     /** Diagnóstico: resumo da última chamada analisada (para depurar bloqueios indevidos). */
     var lastCallDiag: String
         get() = prefs.getString(K_DIAG, "") ?: ""
@@ -129,6 +143,9 @@ class Settings(context: Context) {
         private const val K_QUIET_START = "quiet_start"
         private const val K_QUIET_END = "quiet_end"
         private const val K_QUIET_DAYS = "quiet_days"
+        private const val K_AUTOUPD = "auto_update"
+        private const val K_UPD_AT = "update_check_at"
+        private const val K_UPD_VER = "update_notified_version"
         private const val K_DIAG = "last_call_diag"
         private const val K_DIAG_AT = "last_call_diag_at"
     }

@@ -50,6 +50,10 @@ import com.velarlabs.velarcall.data.QuietHours
 import com.velarlabs.velarcall.data.Settings
 import com.velarlabs.velarcall.data.VelarDb
 import com.velarlabs.velarcall.sync.BlocklistSync
+import com.velarlabs.velarcall.sync.Updater
+import com.velarlabs.velarcall.sync.ReleaseInfo
+import android.net.Uri
+import android.content.Intent
 import android.text.format.DateUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -99,6 +103,47 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
         TimePickerDialog(context, { _, h, m -> onSet(h * 60 + m) }, initial / 60, initial % 60, true).show()
     }
 
+    var checking by remember { mutableStateOf(false) }
+    var downloading by remember { mutableStateOf(false) }
+    var available by remember { mutableStateOf<ReleaseInfo?>(null) }
+    var updMsg by remember { mutableStateOf("") }
+    val checkUpdate = {
+        checking = true; updMsg = ""
+        scope.launch {
+            val r = Updater.latest()
+            checking = false
+            settings.lastUpdateCheckAt = System.currentTimeMillis()
+            if (r != null && Updater.isNewer(r.version)) {
+                available = r
+            } else {
+                available = null
+                updMsg = if (r == null) "Não consegui verificar agora." else "Você já está na versão mais recente."
+            }
+        }
+        Unit
+    }
+    val doUpdate: (ReleaseInfo) -> Unit = { rel ->
+        if (!Updater.canInstall(context)) {
+            runCatching {
+                context.startActivity(
+                    Intent(
+                        android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + context.packageName)
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            }
+            updMsg = "Permita instalar apps desta fonte e toque em Atualizar de novo."
+        } else {
+            downloading = true; updMsg = ""
+            scope.launch {
+                val apk = runCatching { Updater.downloadApk(context, rel.apkUrl) }.getOrNull()
+                downloading = false
+                if (apk != null) runCatching { Updater.install(context, apk) }
+                else updMsg = "Falha ao baixar a atualização."
+            }
+        }
+    }
+
     LazyColumn(contentPadding = ScreenPadding) {
         item { SectionLabel("PROTEÇÃO") }
         item {
@@ -113,6 +158,51 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
                     subtitleColor = if (roleHeld) palette.success else palette.danger,
                     onClick = if (roleHeld) null else env.requestRole
                 )
+            }
+        }
+
+        item { SectionLabel("ATUALIZAÇÕES") }
+        item {
+            Panel {
+                ToggleRow(
+                    "Verificar atualizações",
+                    "Avisa sozinho quando houver uma versão nova.",
+                    settings.autoUpdate
+                ) { settings.autoUpdate = it; bump() }
+                RowDivider(16.dp)
+                Column(Modifier.padding(16.dp)) {
+                    Text(
+                        "Versão instalada: ${Updater.currentVersion()}",
+                        style = MaterialTheme.typography.bodyMedium, color = palette.muted
+                    )
+                    available?.let { rel ->
+                        Spacer(Modifier.height(6.dp))
+                        Text("Nova versão ${rel.version} disponível", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (available != null) {
+                            Button(
+                                enabled = !downloading, shape = RoundedCornerShape(14.dp),
+                                onClick = { doUpdate(available!!) }
+                            ) { Text(if (downloading) "Baixando…" else "Atualizar agora") }
+                        } else {
+                            Button(
+                                enabled = !checking, shape = RoundedCornerShape(14.dp),
+                                onClick = { checkUpdate() }
+                            ) { Text(if (checking) "Verificando…" else "Procurar atualização") }
+                        }
+                    }
+                    if (updMsg.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(updMsg, style = MaterialTheme.typography.bodySmall, color = palette.muted)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Instalado fora da Play Store, o Android pede uma confirmação ao atualizar.",
+                        style = MaterialTheme.typography.bodySmall, color = palette.muted
+                    )
+                }
             }
         }
 
