@@ -7,7 +7,7 @@ Aplicativo Android da **Velar Labs** que identifica e bloqueia chamadas indeseja
 - **Repositório:** `Velar-Labs/velar-call`
 - **Plataforma:** Android 10 (API 29) ou superior
 - **Tecnologia:** Kotlin + Jetpack Compose (Material 3)
-- **Versão atual:** 0.7.0
+- **Versão atual:** 0.8.0
 - **Licença de uso dos dados:** nenhuma informação das suas chamadas sai do celular
 
 ---
@@ -49,7 +49,7 @@ O número que chega da operadora (ex.: `+5511988887777`) é normalizado pelo pr�
 - **Recados** — o que fazer ao bloquear uma chamada: **Correio de voz** (silencia e deixa cair no correio de voz da operadora, para a pessoa deixar recado) ou **Rejeitar** (recusa na hora). Botão para ouvir o correio de voz, ligar de volta num toque e histórico marcando o que foi ao correio. Tocar numa chamada abre o **detalhe daquela ligação** (motivo, diagnóstico e ações).
 - **Agenda** — lista os contatos do telefone, com busca e filtro "Bloqueados". Um toque bloqueia ou libera o contato.
 - **Listas** — números liberados e bloqueados manualmente, com busca e "Desfazer" ao remover.
-- **Ajustes** — interruptores de bloqueio, **bloqueio por prefixo** (0800/0300/0500/0900 ou personalizado), **horário silencioso** (faixa e dias da semana), lista online, notificações, **backup e restauração** das listas e a tela **"Última chamada analisada"** para diagnóstico.
+- **Ajustes** — interruptores de bloqueio, **bloqueio por prefixo** (0800/0300/0500/0900 ou personalizado), **horário silencioso** (faixa e dias da semana), lista online, notificações, **atualizações** (verificar/instalar nova versão), **backup e restauração** das listas e a tela **"Última chamada analisada"** para diagnóstico.
 
 Há ainda um **atalho nas Configurações Rápidas do Android** para ligar/desligar a proteção sem abrir o app.
 
@@ -59,6 +59,16 @@ Há ainda um **atalho nas Configurações Rápidas do Android** para ligar/desli
 
 - **Possível:** em vez de recusar, o app **silencia** a chamada e a deixa cair no **correio de voz da operadora**, onde quem ligou deixa um recado. Você ouve pelo correio de voz e liga de volta pela aba Recados.
 - **Não é possível:** gravar a voz de quem liga **dentro do app**. O Android não entrega o áudio da chamada a apps de terceiros (bloqueado desde o Android 10), nem mesmo ao app de telefone padrão de forma confiável. O recado de voz fica na operadora, não no VelarCall.
+
+---
+
+## 3b. Atualização dentro do app
+
+O app verifica sozinho (uma vez por dia) se há versão nova no **GitHub Releases**, avisa por notificação e, em **Ajustes → Atualizações**, baixa e instala com um toque (via `PackageInstaller`).
+
+- **Possível:** verificar, baixar e iniciar a instalação sem o usuário procurar nada.
+- **Não é possível (fora da Play Store):** instalar de forma 100% silenciosa. O Android pede uma confirmação ao atualizar, e na primeira vez pede para permitir instalar apps do VelarCall. O auto-update só funciona entre versões assinadas com a **mesma chave** (as dos Releases).
+- **100% automático** só publicando na Play Store (o AAB já sai pronto em cada release).
 
 ---
 
@@ -95,7 +105,8 @@ Também aceita texto simples (um número por linha, `numero;rotulo`, `#` para co
 app/src/main/java/com/velarlabs/velarcall/
 ├── screening/
 │   ├── VelarScreeningService.kt          # recebe cada ligação, decide e registra diagnóstico
-│   └── VelarTileService.kt               # atalho nas Configurações Rápidas
+│   ├── VelarTileService.kt               # atalho nas Configurações Rápidas
+│   └── InstallResultReceiver.kt          # resultado da instalação da atualização
 ├── data/
 │   ├── CallDecider.kt                    # regras de bloqueio (a lógica central)
 │   ├── VelarDb.kt                        # listas e histórico (SQLite, v3)
@@ -105,7 +116,10 @@ app/src/main/java/com/velarlabs/velarcall/
 │   ├── QuietHours.kt                     # lógica do horário silencioso (testável)
 │   ├── Backup.kt                         # exportar/importar listas em JSON
 │   └── ...
-├── sync/BlocklistSync.kt                 # download da lista online (WorkManager, 12 h)
+├── sync/
+│   ├── BlocklistSync.kt                  # download da lista online (WorkManager, 12 h)
+│   ├── Updater.kt                        # verifica/baixa/instala nova versão (GitHub Releases)
+│   └── UpdateNotifier.kt                 # notificação de versão nova
 └── ui/                                   # telas em Jetpack Compose
     ├── VelarApp.kt                       # navegação, barra inferior, boas-vindas
     ├── Theme.kt / Components.kt          # tema claro/escuro e componentes
@@ -146,6 +160,7 @@ Exige os secrets `KEYSTORE_BASE64` e `KEYSTORE_PASSWORD` (chave de assinatura �
 | 0.5.0 | Escolha entre "Correio de voz" e "Rejeitar" ao bloquear |
 | 0.6.0 | Backup das listas; bloqueio por prefixo; horário silencioso; AAB para a Play Store; política de privacidade e ficha da loja |
 | 0.7.0 | Detalhe por chamada; horário silencioso por dia da semana; atalho nas Configurações Rápidas; resumo dos últimos 7 dias |
+| 0.8.0 | Atualização dentro do app: verifica, avisa, baixa e instala nova versão do GitHub Releases |
 
 ---
 
@@ -154,6 +169,7 @@ Exige os secrets `KEYSTORE_BASE64` e `KEYSTORE_PASSWORD` (chave de assinatura �
 - Gravar a voz da outra ponta da ligação (correio de voz interno).
 - Mostrar "Provável golpe" na própria tela de chamada sem virar o app de telefone padrão.
 - Garantir o bloqueio de número oculto sem o risco de barrar contatos em aparelhos que não entregam o número ao app.
+- Atualizar-se de forma 100% silenciosa fora da Play Store (o sistema sempre pede uma confirmação).
 
 ---
 
@@ -168,4 +184,4 @@ Pendente:
 
 ---
 
-*Velar Labs — VelarCall. Documento atualizado em 11/11/2026 (v0.7.0).*
+*Velar Labs — VelarCall. Documento atualizado em 11/11/2026 (v0.8.0).*
