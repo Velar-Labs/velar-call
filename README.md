@@ -28,6 +28,10 @@ Na aba **Agenda** dá para bloquear ou liberar qualquer contato com um toque.
 
 Toda a decisão acontece no aparelho. Nenhum dado das suas chamadas sai do celular. A única conexão de rede é o download da lista online.
 
+## Correio de voz (aba Recados)
+
+Em vez de recusar na hora, o VelarCall pode **silenciar** a chamada bloqueada e deixá-la cair no **correio de voz da operadora**, onde quem ligou deixa um recado. Você ouve pelo correio de voz e liga de volta pela aba **Recados**. A opção vem ligada e pode ser desligada na própria aba. Nenhum áudio é gravado pelo app: o Android não permite que apps de terceiros gravem a chamada; o recado fica no correio de voz da operadora.
+
 ## Lista online
 
 O arquivo [`blocklist/numeros.json`](blocklist/numeros.json) deste repositório é a lista padrão. O app baixa essa lista a cada 12 h. O endereço pode ser trocado em **Ajustes**.
