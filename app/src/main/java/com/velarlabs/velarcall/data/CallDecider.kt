@@ -137,6 +137,14 @@ class CallDecider(private val context: Context) {
         if (settings.blockTelemarketingPrefix && key.startsWith("0303")) {
             return Decision.Block("Telemarketing (0303)")
         }
+        settings.blockedPrefixes.firstOrNull { it.isNotBlank() && key.startsWith(it) }?.let {
+            return Decision.Block("Prefixo bloqueado $it")
+        }
+        if (settings.quietHoursEnabled &&
+            QuietHours.isActive(QuietHours.nowMinutes(), settings.quietStart, settings.quietEnd)
+        ) {
+            return Decision.Block("Horário silencioso")
+        }
         if (checkRepeat && settings.allowRepeatCaller) {
             val since = System.currentTimeMillis() - Settings.REPEAT_WINDOW_MS
             if (db.blockedNumbersSince(since).any { PhoneNumbers.key(it) == key }) {

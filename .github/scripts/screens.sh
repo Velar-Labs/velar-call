@@ -134,6 +134,8 @@ tap_text "Agenda"; shot 06-agenda-com-bloqueio
 tap_text "Listas"; shot 09-listas
 tap_text "Ajustes"; shot 10-ajustes
 adb shell input swipe 540 1600 540 400; sleep 1; shot 10b-ajustes-rolado
+adb shell input swipe 540 1600 540 300; sleep 1; shot 10c-ajustes-prefixos
+adb shell input swipe 540 1600 540 300; sleep 1; shot 10d-ajustes-backup
 
 # 5) tema escuro (inclui boas-vindas)
 adb shell cmd uimode night yes
