@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -89,22 +90,29 @@ fun HomeScreen(
     LazyColumn(contentPadding = ScreenPadding) {
         // ---------- status
         item {
-            val bg = if (active) HeroBlue else palette.dangerSoft
+            val heroBrush = if (active)
+                androidx.compose.ui.graphics.Brush.linearGradient(listOf(palette.brand, palette.brandStrong))
+            else androidx.compose.ui.graphics.Brush.linearGradient(listOf(palette.dangerSoft, palette.dangerSoft))
             val fg = if (active) Color.White else palette.text
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(bg).padding(24.dp)
+                Modifier.fillMaxWidth()
+                    .shadow(
+                        if (active) 18.dp else 0.dp, RoundedCornerShape(30.dp),
+                        ambientColor = palette.brand.copy(alpha = 0.5f), spotColor = palette.brand.copy(alpha = 0.5f)
+                    )
+                    .clip(RoundedCornerShape(30.dp)).background(heroBrush).padding(26.dp)
             ) {
                 Box(
-                    Modifier.size(56.dp).clip(CircleShape)
+                    Modifier.size(58.dp).clip(RoundedCornerShape(18.dp))
                         .background(if (active) Color.White.copy(alpha = 0.18f) else palette.danger.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        shieldPainter(), null, modifier = Modifier.size(30.dp),
+                        shieldPainter(), null, modifier = Modifier.size(32.dp),
                         tint = if (active) Color.White else palette.danger
                     )
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(18.dp))
                 Text(
                     if (active) "Você está protegido" else "Proteção desativada",
                     style = MaterialTheme.typography.headlineMedium, color = fg
@@ -170,10 +178,10 @@ fun HomeScreen(
         item {
             Spacer(Modifier.height(20.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                QuickAction(Icons.Filled.Search, "Consultar") { lookup = true }
-                QuickAction(Icons.Filled.Add, "Bloquear\nnúmero") { adding = true }
-                QuickAction(Icons.Filled.Person, "Agenda") { goTo(TAB_CONTACTS) }
-                QuickAction(Icons.Filled.Refresh, if (syncing) "Atualizando" else "Atualizar\nlista") {
+                QuickAction(Icons.Filled.Search, "Consultar", palette.brand) { lookup = true }
+                QuickAction(Icons.Filled.Add, "Bloquear\nnúmero", palette.danger) { adding = true }
+                QuickAction(Icons.Filled.Person, "Agenda", palette.success) { goTo(TAB_CONTACTS) }
+                QuickAction(Icons.Filled.Refresh, if (syncing) "Atualizando" else "Atualizar\nlista", palette.warning) {
                     if (!syncing) {
                         syncing = true
                         scope.launch { BlocklistSync.run(context); syncing = false; bump() }
@@ -307,15 +315,16 @@ private fun HeroStat(value: String, label: String, modifier: Modifier) {
 }
 
 @Composable
-private fun QuickAction(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun QuickAction(icon: ImageVector, label: String, tint: Color, onClick: () -> Unit) {
     Column(
-        Modifier.width(80.dp).clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(vertical = 6.dp),
+        Modifier.width(80.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
-            Modifier.size(56.dp).clip(RoundedCornerShape(18.dp)).background(palette.surface),
+            Modifier.size(58.dp).clip(RoundedCornerShape(20.dp))
+                .background(tint.copy(alpha = if (palette.dark) 0.20f else 0.12f)),
             contentAlignment = Alignment.Center
-        ) { Icon(icon, null, tint = palette.brand) }
+        ) { Icon(icon, null, tint = tint, modifier = Modifier.size(26.dp)) }
         Spacer(Modifier.height(8.dp))
         Text(label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, color = palette.text)
     }

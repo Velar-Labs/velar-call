@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.painter.Painter
@@ -83,14 +84,19 @@ fun initials(name: String): String {
     }
 }
 
-/** Cartão branco com cantos arredondados (agrupa linhas, estilo ajustes do Android). */
+/** Cartão com cantos arredondados e sombra suave (agrupa linhas). */
 @Composable
 fun Panel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(palette.surface)
-            .border(1.dp, palette.outline, RoundedCornerShape(20.dp)),
-        content = content
-    )
+    val shape = RoundedCornerShape(24.dp)
+    val base = if (palette.dark) {
+        modifier.fillMaxWidth().clip(shape).background(palette.surface)
+            .border(1.dp, palette.outline, shape)
+    } else {
+        modifier.fillMaxWidth()
+            .shadow(10.dp, shape, ambientColor = Color(0x14101828), spotColor = Color(0x14101828))
+            .clip(shape).background(palette.surface)
+    }
+    Column(base, content = content)
 }
 
 @Composable

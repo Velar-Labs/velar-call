@@ -13,6 +13,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
 /** Tokens de cor do VelarCall. Mesma estrutura no claro e no escuro. */
@@ -25,6 +26,7 @@ data class VelarPalette(
     val text: Color,
     val muted: Color,
     val brand: Color,
+    val brandStrong: Color,
     val onBrand: Color,
     val brandSoft: Color,
     val danger: Color,
@@ -43,9 +45,10 @@ val LightPalette = VelarPalette(
     outline = Color(0xFFE3E7EF),
     text = Color(0xFF111827),
     muted = Color(0xFF6B7280),
-    brand = Color(0xFF2F5BFF),
+    brand = Color(0xFF3B5BFF),
+    brandStrong = Color(0xFF1E34D6),
     onBrand = Color(0xFFFFFFFF),
-    brandSoft = Color(0xFFE6ECFF),
+    brandSoft = Color(0xFFE7ECFF),
     danger = Color(0xFFE5484D),
     dangerSoft = Color(0xFFFDECEC),
     success = Color(0xFF12A150),
@@ -62,9 +65,10 @@ val DarkPalette = VelarPalette(
     outline = Color(0xFF2A2F3A),
     text = Color(0xFFF3F4F6),
     muted = Color(0xFF9CA3AF),
-    brand = Color(0xFF6F8BFF),
+    brand = Color(0xFF7D96FF),
+    brandStrong = Color(0xFF5069E6),
     onBrand = Color(0xFF0B1240),
-    brandSoft = Color(0xFF1E2747),
+    brandSoft = Color(0xFF20294A),
     danger = Color(0xFFFF6B6E),
     dangerSoft = Color(0xFF3A1D20),
     success = Color(0xFF3DD68C),
@@ -80,14 +84,14 @@ val palette: VelarPalette
     @Composable get() = LocalPalette.current
 
 private val VelarType = Typography(
-    headlineMedium = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold, lineHeight = 32.sp),
-    titleLarge = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold, lineHeight = 26.sp),
+    headlineMedium = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 34.sp, letterSpacing = (-0.03).em),
+    titleLarge = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp, letterSpacing = (-0.02).em),
     titleMedium = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp),
     bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 22.sp),
     bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
     bodySmall = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
     labelLarge = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
-    labelMedium = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+    labelMedium = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.02.em),
 )
 
 @Composable
