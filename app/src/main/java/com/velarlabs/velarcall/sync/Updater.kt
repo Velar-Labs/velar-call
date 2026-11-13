@@ -12,6 +12,7 @@ import org.json.JSONArray
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
 
 data class ReleaseInfo(val version: String, val apkUrl: String, val notes: String)
 
