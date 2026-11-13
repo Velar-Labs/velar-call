@@ -122,6 +122,10 @@ fun NumberSheet(
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(if (status == ManualStatus.BLOCKED) "Desbloquear" else "Tirar da lista permitida") }
                 }
+                TextButton(
+                    onClick = { searchWeb(context, raw ?: "") },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Pesquisar na web") }
                 var reporting by remember(key) { mutableStateOf(false) }
                 TextButton(
                     enabled = !reporting,

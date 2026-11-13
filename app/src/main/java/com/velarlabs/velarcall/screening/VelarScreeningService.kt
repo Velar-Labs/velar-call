@@ -47,13 +47,16 @@ class VelarScreeningService : CallScreeningService() {
             Log.e(TAG, "Falha ao decidir; permitindo a chamada", e)
             Decision.Allow("Erro")
         }
-        // Silenciar (em vez de rejeitar) deixa a chamada cair no correio de voz da operadora,
-        // onde quem ligou pode deixar um recado. Rejeitar corta na hora.
-        val toVoicemail = decision is Decision.Block && Settings(this).sendBlockedToVoicemail
-        val detail = recordDiagnostic(details, raw, verifyStatus, decider, decision, toVoicemail)
+        val settings = Settings(this)
+        val isBlock = decision is Decision.Block
+        // Modo suave: a chamada toca, mas é marcada como "teria bloqueado".
+        val soft = isBlock && settings.softMode
+        // Silenciar (em vez de rejeitar) deixa a chamada cair no correio de voz da operadora.
+        val toVoicemail = isBlock && !soft && settings.sendBlockedToVoicemail
+        val detail = recordDiagnostic(details, raw, verifyStatus, decider, decision, toVoicemail, soft)
 
         val response = when {
-            decision is Decision.Allow -> CallResponse.Builder().build()
+            decision is Decision.Allow || soft -> CallResponse.Builder().build() // deixa tocar
             toVoicemail -> CallResponse.Builder()
                 .setSilenceCall(true)   // não toca; segue para o correio de voz se ninguém atender
                 .setSkipNotification(true)
@@ -67,10 +70,11 @@ class VelarScreeningService : CallScreeningService() {
         }
         respondToCall(details, response)
 
-        if (decision is Decision.Block) {
+        if (isBlock) {
             val shown = raw.orEmpty()
-            VelarDb.get(this).logBlocked(shown, decision.reason, toVoicemail, detail)
-            notifyBlocked(shown, decision.reason, toVoicemail)
+            val reason = (decision as Decision.Block).reason + if (soft) " · modo suave (só marcado)" else ""
+            VelarDb.get(this).logBlocked(shown, reason, toVoicemail, detail)
+            notifyBlocked(shown, reason, toVoicemail, soft)
         }
     }
 
@@ -82,6 +86,7 @@ class VelarScreeningService : CallScreeningService() {
         decider: CallDecider,
         decision: Decision,
         toVoicemail: Boolean,
+        soft: Boolean,
     ): String {
         val verify = when (verifyStatus) {
             Connection.VERIFICATION_STATUS_PASSED -> "verificado"
@@ -90,6 +95,7 @@ class VelarScreeningService : CallScreeningService() {
             else -> "indisponível"
         }
         val result = when {
+            decision is Decision.Block && soft -> "MARCADA (modo suave)"
             decision is Decision.Block && toVoicemail -> "CORREIO DE VOZ"
             decision is Decision.Block -> "BLOQUEADA"
             else -> "PERMITIDA"
@@ -112,7 +118,7 @@ class VelarScreeningService : CallScreeningService() {
         return diag
     }
 
-    private fun notifyBlocked(raw: String, reason: String, toVoicemail: Boolean) {
+    private fun notifyBlocked(raw: String, reason: String, toVoicemail: Boolean, soft: Boolean = false) {
         if (!Settings(this).notifyOnBlock) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -127,9 +133,19 @@ class VelarScreeningService : CallScreeningService() {
             .setSmallIcon(R.drawable.ic_shield_v)
             .setColor(getColor(R.color.velar_brand))
             .setContentTitle(
-                (if (toVoicemail) "Recado no correio de voz: " else "Chamada bloqueada: ") + PhoneNumbers.pretty(raw)
+                (when {
+                    soft -> "Teria bloqueado: "
+                    toVoicemail -> "Recado no correio de voz: "
+                    else -> "Chamada bloqueada: "
+                }) + PhoneNumbers.pretty(raw)
             )
-            .setContentText(if (toVoicemail) "$reason · ouça no correio de voz" else reason)
+            .setContentText(
+                when {
+                    soft -> "$reason · tocou (modo suave)"
+                    toVoicemail -> "$reason · ouça no correio de voz"
+                    else -> reason
+                }
+            )
             .setContentIntent(open)
             .setAutoCancel(true)
             .build()

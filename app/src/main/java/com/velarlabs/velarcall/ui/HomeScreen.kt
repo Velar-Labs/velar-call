@@ -70,6 +70,7 @@ fun HomeScreen(
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || env.hasPermission(Manifest.permission.POST_NOTIFICATIONS)
     }
     val protectionOn = remember(tick) { settings.protectionOn }
+    val softMode = remember(tick) { settings.softMode }
     val today = remember(tick) { db.blockedSince(startOfToday()) }
     val total = remember(tick) { db.blockedSince(0) }
     val recent = remember(tick) { db.blocked(4) }
@@ -139,9 +140,31 @@ fun HomeScreen(
                 } else {
                     Spacer(Modifier.height(20.dp))
                     Row {
-                        HeroStat("$total", "no total", Modifier.weight(1f))
-                        HeroStat("$blockedCount", "sua lista", Modifier.weight(1f))
-                        HeroStat("$onlineCount", "lista online", Modifier.weight(1f))
+                        HeroStat(total, "no total", Modifier.weight(1f))
+                        HeroStat(blockedCount, "sua lista", Modifier.weight(1f))
+                        HeroStat(onlineCount, "lista online", Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+
+        // ---------- aviso de modo suave
+        if (softMode && active) {
+            item {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(palette.warningSoft)
+                        .clickable { goTo(TAB_SETTINGS) }.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.Warning, null, tint = palette.warning)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Modo suave ativo", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "As chamadas tocam normalmente; o app só marca o que teria bloqueado.",
+                            style = MaterialTheme.typography.bodySmall, color = palette.muted
+                        )
                     }
                 }
             }
@@ -307,9 +330,14 @@ private fun WeekBars(perDay: IntArray) {
 }
 
 @Composable
-private fun HeroStat(value: String, label: String, modifier: Modifier) {
+private fun HeroStat(value: Int, label: String, modifier: Modifier) {
+    val animated by androidx.compose.animation.core.animateIntAsState(
+        targetValue = value,
+        animationSpec = androidx.compose.animation.core.tween(600),
+        label = "stat"
+    )
     Column(modifier) {
-        Text(value, style = MaterialTheme.typography.titleLarge, color = Color.White)
+        Text("$animated", style = MaterialTheme.typography.titleLarge, color = Color.White)
         Text(label, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.75f))
     }
 }

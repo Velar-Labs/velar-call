@@ -138,12 +138,18 @@ fun VelarApp(refreshTick: Int, initialTab: Int, env: AppEnv) {
         }
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
-            when (tab) {
-                TAB_HOME -> HomeScreen(tick, bump, env) { tab = it }
-                TAB_HISTORY -> RecadosScreen(tick, bump)
-                TAB_CONTACTS -> ContactsScreen(tick, bump, env)
-                TAB_LISTS -> ListsScreen(tick, bump, snackbar)
-                else -> SettingsScreen(tick, bump, env)
+            androidx.compose.animation.Crossfade(
+                targetState = tab,
+                animationSpec = androidx.compose.animation.core.tween(280),
+                label = "tab"
+            ) { current ->
+                when (current) {
+                    TAB_HOME -> HomeScreen(tick, bump, env) { tab = it }
+                    TAB_HISTORY -> RecadosScreen(tick, bump)
+                    TAB_CONTACTS -> ContactsScreen(tick, bump, env)
+                    TAB_LISTS -> ListsScreen(tick, bump, snackbar)
+                    else -> SettingsScreen(tick, bump, env)
+                }
             }
         }
     }

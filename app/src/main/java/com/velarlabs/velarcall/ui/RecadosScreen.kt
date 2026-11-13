@@ -247,6 +247,10 @@ fun CallDetailSheet(call: BlockedCall, onDismiss: () -> Unit, onChanged: () -> U
                 }
                 if (key.isNotEmpty()) {
                     androidx.compose.material3.TextButton(
+                        onClick = { searchWeb(context, call.number) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Pesquisar na web") }
+                    androidx.compose.material3.TextButton(
                         enabled = !reporting,
                         onClick = {
                             reporting = true
@@ -268,6 +272,19 @@ fun CallDetailSheet(call: BlockedCall, onDismiss: () -> Unit, onChanged: () -> U
     }
 }
 
+
+/** Pesquisa o número na web (quem ligou), no navegador padrão. */
+fun searchWeb(context: Context, rawNumber: String) {
+    val digits = PhoneNumbers.digits(rawNumber)
+    val termo = if (digits.isNotEmpty()) digits else rawNumber
+    val q = Uri.encode("quem ligou $termo")
+    runCatching {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=$q"))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+}
 
 /** Abre o discador na ligação de volta (ACTION_DIAL não precisa de permissão). */
 fun callNumber(context: Context, rawNumber: String) {

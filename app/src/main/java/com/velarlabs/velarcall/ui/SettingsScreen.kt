@@ -224,6 +224,17 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
             }
         }
 
+        item { SectionLabel("MODO SUAVE") }
+        item {
+            Panel {
+                ToggleRow(
+                    "Só marcar, não bloquear",
+                    "As chamadas tocam normalmente, mas o VelarCall marca o que teria bloqueado. Ótimo para testar por alguns dias antes de confiar no bloqueio.",
+                    settings.softMode
+                ) { settings.softMode = it; bump() }
+            }
+        }
+
         item { SectionLabel("O QUE BLOQUEAR") }
         item {
             Panel {
