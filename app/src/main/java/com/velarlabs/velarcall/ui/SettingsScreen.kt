@@ -138,8 +138,12 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
             scope.launch {
                 val apk = runCatching { Updater.downloadApk(context, rel.apkUrl) }.getOrNull()
                 downloading = false
-                if (apk != null) runCatching { Updater.install(context, apk) }
-                else updMsg = "Falha ao baixar a atualização."
+                when {
+                    apk == null -> updMsg = "Falha ao baixar a atualização."
+                    !Updater.signatureMatches(context, apk) ->
+                        updMsg = "Atualização recusada: assinatura inválida. Baixe só pelos Releases oficiais."
+                    else -> runCatching { Updater.install(context, apk) }
+                }
             }
         }
     }

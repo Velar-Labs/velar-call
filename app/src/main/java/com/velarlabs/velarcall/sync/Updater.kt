@@ -95,6 +95,31 @@ object Updater {
         out
     }
 
+    /**
+     * Confere que o APK baixado está assinado com a MESMA chave do app instalado.
+     * Defesa extra: um APK adulterado (outra assinatura) é recusado antes de instalar.
+     */
+    fun signatureMatches(context: Context, apk: File): Boolean {
+        return try {
+            val pm = context.packageManager
+            val flag = android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            val installed = pm.getPackageInfo(context.packageName, flag).signingInfo
+            val downloaded = pm.getPackageArchiveInfo(apk.absolutePath, flag)?.signingInfo ?: return false
+            val a = certHashes(installed)
+            val b = certHashes(downloaded)
+            a.isNotEmpty() && a == b
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun certHashes(info: android.content.pm.SigningInfo?): Set<String> {
+        val signers = info?.apkContentsSigners ?: return emptySet()
+        return signers.map { sig ->
+            MessageDigest.getInstance("SHA-256").digest(sig.toByteArray()).joinToString("") { "%02x".format(it) }
+        }.toSet()
+    }
+
     /** Entrega o APK ao instalador do sistema; o Android pede a confirmação final. */
     fun install(context: Context, apk: File) {
         val installer = context.packageManager.packageInstaller
