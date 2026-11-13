@@ -183,6 +183,7 @@ fun CallDetailSheet(call: BlockedCall, onDismiss: () -> Unit, onChanged: () -> U
     val key = PhoneNumbers.key(call.number)
     var status by remember(key) { mutableStateOf(manualStatus(db, key)) }
     var reporting by remember { mutableStateOf(false) }
+    var pickReport by remember { mutableStateOf(false) }
 
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -252,20 +253,21 @@ fun CallDetailSheet(call: BlockedCall, onDismiss: () -> Unit, onChanged: () -> U
                     ) { Text("Pesquisar na web") }
                     androidx.compose.material3.TextButton(
                         enabled = !reporting,
-                        onClick = {
-                            reporting = true
-                            scope.launch {
-                                val ok = com.velarlabs.velarcall.sync.Reporter.report(context, call.number)
-                                reporting = false
-                                android.widget.Toast.makeText(
-                                    context,
-                                    if (ok) "Denunciado. Obrigado por ajudar a proteger todos!" else "Não consegui enviar a denúncia agora.",
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        },
+                        onClick = { pickReport = true },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(if (reporting) "Enviando…" else "Denunciar como spam") }
+                    if (pickReport) ReportDialog(onDismiss = { pickReport = false }) { cat ->
+                        pickReport = false; reporting = true
+                        scope.launch {
+                            val ok = com.velarlabs.velarcall.sync.Reporter.report(context, call.number, cat)
+                            reporting = false
+                            android.widget.Toast.makeText(
+                                context,
+                                if (ok) "Denunciado. Obrigado por ajudar a proteger todos!" else "Não consegui enviar a denúncia agora.",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
                 }
             }
         }

@@ -75,6 +75,21 @@ class VelarScreeningService : CallScreeningService() {
             val reason = (decision as Decision.Block).reason + if (soft) " · modo suave (só marcado)" else ""
             VelarDb.get(this).logBlocked(shown, reason, toVoicemail, detail)
             notifyBlocked(shown, reason, toVoicemail, soft)
+            com.velarlabs.velarcall.widget.VelarWidget.refresh(this)
+        }
+
+        // Identificação na tela: aviso flutuante para chamadas que tocam (não as recusadas na hora).
+        if (settings.callerIdOverlay && !raw.isNullOrBlank()) {
+            val ringing = decision is Decision.Allow || soft || toVoicemail
+            if (ringing) {
+                val pretty = PhoneNumbers.pretty(raw)
+                when {
+                    isBlock -> CallOverlay.show(this, pretty, "Provável spam · ${(decision as Decision.Block).reason}", 2)
+                    decision is Decision.Allow && decision.reason.startsWith("Contato") ->
+                        CallOverlay.show(this, pretty, decision.reason, 0)
+                    else -> CallOverlay.show(this, pretty, "Número desconhecido", 1)
+                }
+            }
         }
     }
 

@@ -48,6 +48,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean(K_NOTIFY, true)
         set(v) = prefs.edit().putBoolean(K_NOTIFY, v).apply()
 
+    /** Mostra um aviso flutuante identificando o número na tela da chamada (precisa de permissão de sobreposição). */
+    var callerIdOverlay: Boolean
+        get() = prefs.getBoolean(K_OVERLAY, false)
+        set(v) = prefs.edit().putBoolean(K_OVERLAY, v).apply()
+
     /** Modo suave: em vez de bloquear, só marca e avisa o que SERIA bloqueado. Para testar sem risco. */
     var softMode: Boolean
         get() = prefs.getBoolean(K_SOFT, false)
@@ -146,6 +151,7 @@ class Settings(context: Context) {
         private const val K_SPOOF = "block_spoofed"
         private const val K_NOTIFY = "notify_on_block"
         private const val K_SOFT = "soft_mode"
+        private const val K_OVERLAY = "caller_overlay"
         private const val K_VOICEMAIL = "send_to_voicemail"
         private const val K_REPEAT = "allow_repeat"
         private const val K_ONBOARD = "onboarding_done"

@@ -228,6 +228,29 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
             }
         }
 
+        item { SectionLabel("IDENTIFICAÇÃO NA TELA") }
+        item {
+            Panel {
+                ToggleRow(
+                    "Mostrar quem está ligando",
+                    "Um aviso flutuante identifica o número na tela da chamada. Precisa da permissão de sobrepor a outros apps.",
+                    settings.callerIdOverlay
+                ) { on ->
+                    settings.callerIdOverlay = on; bump()
+                    if (on && !android.provider.Settings.canDrawOverlays(context)) {
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:" + context.packageName)
+                                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         item { SectionLabel("MODO SUAVE") }
         item {
             Panel {

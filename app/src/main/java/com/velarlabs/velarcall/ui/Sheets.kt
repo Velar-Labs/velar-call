@@ -1,6 +1,7 @@
 package com.velarlabs.velarcall.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -127,22 +128,24 @@ fun NumberSheet(
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("Pesquisar na web") }
                 var reporting by remember(key) { mutableStateOf(false) }
+                var pickReport by remember(key) { mutableStateOf(false) }
                 TextButton(
                     enabled = !reporting,
-                    onClick = {
-                        reporting = true
-                        scope.launch {
-                            val ok = com.velarlabs.velarcall.sync.Reporter.report(context, raw ?: "", label)
-                            reporting = false
-                            android.widget.Toast.makeText(
-                                context,
-                                if (ok) "Denunciado. Obrigado por ajudar a proteger todos!" else "Não consegui enviar a denúncia agora.",
-                                android.widget.Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    },
+                    onClick = { pickReport = true },
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(if (reporting) "Enviando…" else "Denunciar como spam") }
+                if (pickReport) ReportDialog(onDismiss = { pickReport = false }) { cat ->
+                    pickReport = false; reporting = true
+                    scope.launch {
+                        val ok = com.velarlabs.velarcall.sync.Reporter.report(context, raw ?: "", cat)
+                        reporting = false
+                        android.widget.Toast.makeText(
+                            context,
+                            if (ok) "Denunciado. Obrigado por ajudar a proteger todos!" else "Não consegui enviar a denúncia agora.",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
             }
         }
     }
@@ -225,6 +228,34 @@ fun AddNumberDialog(title: String, onDismiss: () -> Unit, onSave: (String, Strin
             }
         },
         confirmButton = { TextButton(enabled = valid, onClick = { onSave(num, label.trim()) }) { Text("Salvar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
+}
+
+/** Escolha da categoria ao denunciar um número como spam. */
+@Composable
+fun ReportDialog(onDismiss: () -> Unit, onPick: (String) -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = palette.surface,
+        title = { Text("Denunciar como spam") },
+        text = {
+            Column {
+                Text("Qual é o tipo?", style = MaterialTheme.typography.bodyMedium, color = palette.muted)
+                Spacer(Modifier.height(8.dp))
+                listOf("Golpe", "Telemarketing", "Cobrança", "Outro").forEachIndexed { i, cat ->
+                    if (i > 0) RowDivider(0.dp)
+                    Text(
+                        cat,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth()
+                            .clickable { onPick(if (cat == "Outro") "" else cat) }
+                            .padding(vertical = 14.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }
