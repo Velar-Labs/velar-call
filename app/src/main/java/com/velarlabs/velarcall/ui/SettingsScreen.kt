@@ -42,6 +42,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.ui.unit.dp
 import com.velarlabs.velarcall.data.Backup
 import com.velarlabs.velarcall.data.ListType
@@ -70,6 +72,13 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
     val syncAt = remember(tick) { settings.lastSyncAt }
     val onlineCount = remember(tick) { db.count(ListType.ONLINE) }
     val roleHeld = remember(tick) { env.isRoleHeld() }
+    val contactsOk = remember(tick) { env.hasPermission(android.Manifest.permission.READ_CONTACTS) }
+    val notifOk = remember(tick) {
+        android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU ||
+            env.hasPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+    }
+    val overlayOk = remember(tick) { android.provider.Settings.canDrawOverlays(context) }
+    val problems = listOf(!settings.protectionOn, !roleHeld, !contactsOk).count { it }
     val diag = remember(tick) { settings.lastCallDiag }
     val diagAt = remember(tick) { settings.lastCallDiagAt }
     var prefixInput by rememberSaveable { mutableStateOf("") }
@@ -149,6 +158,45 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
     }
 
     LazyColumn(contentPadding = ScreenPadding) {
+        item { SectionLabel("VERIFICAÇÃO DE CONFIGURAÇÃO") }
+        item {
+            Panel {
+                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (problems == 0) Icons.Filled.CheckCircle else Icons.Filled.Warning, null,
+                        tint = if (problems == 0) palette.success else palette.warning, modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        if (problems == 0) "Tudo certo — o app está protegendo."
+                        else "$problems ${if (problems == 1) "item a resolver" else "itens a resolver"} para o app bloquear.",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                RowDivider(16.dp)
+                CheckRow("Proteção ligada", settings.protectionOn) { settings.protectionOn = true; bump() }
+                RowDivider(16.dp)
+                CheckRow("App de identificação de chamadas", roleHeld, env.requestRole)
+                RowDivider(16.dp)
+                CheckRow("Acesso à agenda (bloquear desconhecidos)", contactsOk, env.requestPermissions)
+                RowDivider(16.dp)
+                CheckRow("Notificações", notifOk, env.requestPermissions)
+                if (settings.callerIdOverlay) {
+                    RowDivider(16.dp)
+                    CheckRow("Sobrepor a outros apps (identificação na tela)", overlayOk) {
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:" + context.packageName)
+                                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         item { SectionLabel("PROTEÇÃO") }
         item {
             Panel {
@@ -489,6 +537,23 @@ fun SettingsScreen(tick: Int, bump: () -> Unit, env: AppEnv) {
             }
         }
     }
+}
+
+@Composable
+private fun CheckRow(title: String, ok: Boolean, fix: () -> Unit) {
+    ListRow(
+        title = title,
+        subtitle = if (ok) "OK" else "Precisa de ação",
+        subtitleColor = if (ok) palette.success else palette.danger,
+        leading = {
+            Icon(
+                if (ok) Icons.Filled.CheckCircle else Icons.Filled.Warning, null,
+                tint = if (ok) palette.success else palette.warning, modifier = Modifier.size(22.dp)
+            )
+        },
+        trailing = { if (!ok) Pill("Corrigir", palette.onBrand, palette.brand, fix) },
+        onClick = if (ok) null else fix
+    )
 }
 
 @Composable
