@@ -1,0 +1,13 @@
+role: com.velarlabs.velarcall
+OK | desconhecido | 11987654321 | esperado=BLOQUEIA obtido=BLOQUEIA (callState=0)
+OK | contato da agenda | 11999990000 | esperado=TOCA obtido=TOCA (callState=1)
+OK | telemarketing 0303 | 03031234567 | esperado=BLOQUEIA obtido=BLOQUEIA (callState=0)
+OK | mesmo desconhecido de novo (insistência) | 11987654321 | esperado=TOCA obtido=TOCA (callState=1)
+OK | outro desconhecido | 21933332222 | esperado=BLOQUEIA obtido=BLOQUEIA (callState=0)
+OK | contato salvo em +55, chamada nacional | 11988881111 | esperado=TOCA obtido=TOCA (callState=1)
+OK | contato nacional, chamada em +55 (E.164) | +5511999990000 | esperado=TOCA obtido=TOCA (callState=1)
+OK | contato bloqueado pela aba Agenda | 21988887777 | esperado=BLOQUEIA obtido=BLOQUEIA (callState=0)
+OK | bloqueado com correio de voz (silenciado) | 11955553333 | esperado=TOCA obtido=TOCA (callState=1)
+texto nao encontrado: Só marcar, não bloquear
+texto nao encontrado: Só marcar, não bloquear
+texto nao encontrado: Horário silencioso
