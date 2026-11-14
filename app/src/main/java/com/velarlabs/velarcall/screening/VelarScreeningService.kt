@@ -29,8 +29,10 @@ import com.velarlabs.velarcall.ui.TAB_HISTORY
 class VelarScreeningService : CallScreeningService() {
 
     override fun onScreenCall(details: Call.Details) {
-        val incoming = details.callDirection == Call.Details.DIRECTION_INCOMING
-        if (!incoming) {
+        // Só ignoramos chamadas de SAÍDA. Muitos aparelhos reportam a direção como
+        // DIRECTION_UNKNOWN para a triagem; tratá-la como entrada evita o caso em que
+        // o app não bloqueia nada nesses celulares.
+        if (details.callDirection == Call.Details.DIRECTION_OUTGOING) {
             respondToCall(details, CallResponse.Builder().build())
             return
         }
@@ -123,9 +125,15 @@ class VelarScreeningService : CallScreeningService() {
             raw.isNullOrBlank() -> "número vazio"
             else -> PhoneNumbers.pretty(raw)
         }
+        val direction = when (details.callDirection) {
+            Call.Details.DIRECTION_INCOMING -> "entrada"
+            Call.Details.DIRECTION_OUTGOING -> "saída"
+            else -> "desconhecida"
+        }
         val diag = buildString {
             append(result).append(" · ").append(reason).append('\n')
             append("Número: ").append(numberInfo).append('\n')
+            append("Direção: ").append(direction).append('\n')
             append("Verificação da operadora: ").append(verify).append('\n')
             append("Agenda: ").append(contacts)
         }
